@@ -22,6 +22,19 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { ShieldCheck, PlusCircle, Save, Trash2, Edit, Users, LayoutDashboard, User, FileText, BarChart2, UserPlus as UserPlusIcon, TestTube, Package as PackageIcon, Settings as SettingsIcon } from "lucide-react";
 import type { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 interface Permission {
   id: string;
@@ -38,7 +51,6 @@ interface ModulePermissions {
 interface Role {
   id: string;
   name: string;
-  description: string;
   permissions: Set<string>; // Set of permission IDs
 }
 
@@ -127,25 +139,21 @@ const initialRoles: Role[] = [
   {
     id: 'admin',
     name: 'Administrator',
-    description: 'Full access to all system features.',
     permissions: new Set(allFeaturePermissions.flatMap(m => m.permissions.map(p => p.id))),
   },
   {
     id: 'doctor',
     name: 'Doctor',
-    description: 'Access to patient data, reports, and billing for their patients.',
     permissions: new Set(['dashboard.view', 'patients.view', 'patients.edit', 'bills.view', 'reports.view', 'doctors.view']),
   },
   {
     id: 'receptionist',
     name: 'Receptionist',
-    description: 'Manages patient registration, appointments, and billing.',
     permissions: new Set(['patients.view', 'patients.create', 'patients.edit', 'bills.view', 'bills.create', 'doctors.view']),
   },
   {
     id: 'technician',
     name: 'Lab Technician',
-    description: 'Manages tests and reports generation.',
     permissions: new Set(['tests.view.tests', 'reports.view', 'reports.generate']),
   },
 ];
@@ -155,8 +163,8 @@ export default function RolesPermissionsPage() {
   const [roles, setRoles] = React.useState<Role[]>(initialRoles);
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(roles.length > 0 ? roles[0] : null);
   const [newRoleName, setNewRoleName] = React.useState('');
-  const [newRoleDescription, setNewRoleDescription] = React.useState('');
   const [isAddingRole, setIsAddingRole] = React.useState(false);
+  const [roleToDelete, setRoleToDelete] = React.useState<Role | null>(null);
 
   const handleRoleSelect = (role: Role) => {
     setSelectedRole(role);
@@ -174,14 +182,11 @@ export default function RolesPermissionsPage() {
 
     const updatedRole = { ...selectedRole, permissions: updatedPermissions };
     setSelectedRole(updatedRole);
-
-    // Update in the main roles list as well for persistence (in a real app, this would be an API call)
     setRoles(roles.map(r => r.id === selectedRole.id ? updatedRole : r));
   };
 
   const handleSavePermissions = () => {
     if (!selectedRole) return;
-    // In a real app, this would be an API call to save the selectedRole.permissions
     console.log(`Saving permissions for role: ${selectedRole.name}`, selectedRole.permissions);
     toast({
       title: "Permissions Saved",
@@ -202,16 +207,42 @@ export default function RolesPermissionsPage() {
     const newRole: Role = {
       id: newRoleId,
       name: newRoleName.trim(),
-      description: newRoleDescription.trim(),
-      permissions: new Set(), // Start with no permissions
+      permissions: new Set(),
     };
     setRoles([...roles, newRole]);
     setSelectedRole(newRole);
     setNewRoleName('');
-    setNewRoleDescription('');
     setIsAddingRole(false);
     toast({ title: "Role Added", description: `Role "${newRole.name}" has been created.` });
   };
+
+  const confirmDeleteRole = () => {
+    if (!roleToDelete) return;
+
+    if (roleToDelete.id === 'admin') {
+        toast({
+            title: "Cannot Delete Role",
+            description: "The Administrator role cannot be deleted.",
+            variant: "destructive",
+        });
+        setRoleToDelete(null);
+        return;
+    }
+
+    setRoles(prevRoles => prevRoles.filter(role => role.id !== roleToDelete.id));
+    
+    if (selectedRole?.id === roleToDelete.id) {
+        const newRolesList = roles.filter(role => role.id !== roleToDelete.id);
+        setSelectedRole(newRolesList.length > 0 ? newRolesList[0] : null);
+    }
+    
+    toast({
+        title: "Role Deleted",
+        description: `The role "${roleToDelete.name}" has been successfully deleted.`,
+    });
+    setRoleToDelete(null);
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -220,7 +251,7 @@ export default function RolesPermissionsPage() {
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-8 w-8 text-primary" />
             <div>
-              <CardTitle className="text-3xl font-bold">Roles & Permissions</CardTitle>
+              <CardTitle className="text-3xl font-bold">Roles &amp; Permissions</CardTitle>
               <CardDescription>Manage user roles and their access to system features.</CardDescription>
             </div>
           </div>
@@ -228,27 +259,49 @@ export default function RolesPermissionsPage() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Roles List Column */}
         <Card className="md:col-span-1 shadow-md">
           <CardHeader>
             <CardTitle className="text-xl">User Roles</CardTitle>
-            <CardDescription>Select a role to manage its permissions.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {roles.map((role) => (
-              <Button
+              <div
                 key={role.id}
-                variant={selectedRole?.id === role.id ? 'default' : 'outline'}
-                className="w-full justify-start text-left h-auto py-3"
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors",
+                  selectedRole?.id === role.id
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "hover:bg-muted/50"
+                )}
                 onClick={() => handleRoleSelect(role)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRoleSelect(role);}}
+                tabIndex={0}
+                role="button"
+                aria-label={`Select role ${role.name}`}
               >
-                <div className="flex flex-col">
-                  <span className="font-medium">{role.name}</span>
-                  <span className="text-xs text-muted-foreground group-hover:text-accent-foreground/80 data-[state=active]:text-primary-foreground/80">
-                    {role.description || 'No description'}
-                  </span>
-                </div>
-              </Button>
+                <span className="font-medium">{role.name}</span>
+                {role.id !== 'admin' && (
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-7 w-7",
+                        selectedRole?.id === role.id
+                          ? "text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                          : "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRoleToDelete(role);
+                      }}
+                      aria-label={`Delete role ${role.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                )}
+              </div>
             ))}
              <Button variant="outline" className="w-full mt-4 border-dashed hover:border-solid" onClick={() => setIsAddingRole(true)}>
               <PlusCircle className="mr-2 h-5 w-5" /> Add New Role
@@ -266,15 +319,6 @@ export default function RolesPermissionsPage() {
                     placeholder="e.g., Accountant" 
                   />
                 </div>
-                <div>
-                  <Label htmlFor="newRoleDescription">Description (Optional)</Label>
-                  <Input 
-                    id="newRoleDescription" 
-                    value={newRoleDescription} 
-                    onChange={(e) => setNewRoleDescription(e.target.value)} 
-                    placeholder="Brief description of the role"
-                  />
-                </div>
                 <div className="flex gap-2 justify-end">
                    <Button variant="ghost" size="sm" onClick={() => setIsAddingRole(false)}>Cancel</Button>
                    <Button size="sm" onClick={handleAddNewRole}>Create Role</Button>
@@ -284,7 +328,6 @@ export default function RolesPermissionsPage() {
           </CardContent>
         </Card>
 
-        {/* Permissions Column */}
         <Card className="md:col-span-2 shadow-md">
           <CardHeader>
             {selectedRole ? (
@@ -317,8 +360,9 @@ export default function RolesPermissionsPage() {
                               id={permission.id}
                               checked={selectedRole.permissions.has(permission.id)}
                               onCheckedChange={(checked) => handlePermissionChange(permission.id, !!checked)}
+                              aria-labelledby={`${permission.id}-label`}
                             />
-                            <Label htmlFor={permission.id} className="font-normal cursor-pointer flex-1">
+                            <Label htmlFor={permission.id} id={`${permission.id}-label`} className="font-normal cursor-pointer flex-1">
                               {permission.label}
                             </Label>
                           </div>
@@ -342,6 +386,23 @@ export default function RolesPermissionsPage() {
           )}
         </Card>
       </div>
+      <AlertDialog open={!!roleToDelete} onOpenChange={(open) => !open && setRoleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Deleting the role "{roleToDelete?.name}" will remove it permanently.
+              Any users assigned to this role may lose their specific permissions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRoleToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteRole} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+              Delete Role
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
