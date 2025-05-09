@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -5,14 +6,29 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { FlaskConical, LayoutDashboard, Settings, Users, Atom } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  User, 
+  FileText, 
+  BarChart2, 
+  UserPlus, 
+  TestTube, 
+  Package, 
+  Users, 
+  Settings 
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/labs", label: "Labs", icon: FlaskConical },
-  { href: "/users", label: "Users", icon: Users },
+  { href: "/patients", label: "Patients", icon: User },
+  { href: "/bills", label: "Bills", icon: FileText },
+  { href: "/reports", label: "Reports", icon: BarChart2 },
+  { href: "/doctors", label: "Doctors", icon: UserPlus },
+  { href: "/tests", label: "Tests", icon: TestTube },
+  { href: "/test-packages", label: "Test Packages", icon: Package },
+  { href: "/staff", label: "Staff", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
