@@ -15,6 +15,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"; // Added Table imports
+import {
   Search,
   PlusCircle,
   ArrowLeft,
@@ -27,7 +35,7 @@ import {
   PackagePlus,
   Radiation,
   ShieldCheck,
-  Clipboard, // Changed from ClipboardMedical
+  Clipboard, 
   MoreHorizontal,
   Edit,
   Trash2,
@@ -151,7 +159,7 @@ const mockTestCategoriesData: Record<string, TestCategoryDetails> = {
     id: "smear-tests",
     name: "Smear Tests",
     description: "Microscopic examination of smears for diagnostic purposes.",
-    icon: Clipboard, // Changed icon
+    icon: Clipboard, 
     tests: [
         { id: "SM001", name: "Pap Smear", shortCode: "PAP", price: 700, turnAroundTime: "3-5 days", sampleType: "Cervical Smear" },
     ]
