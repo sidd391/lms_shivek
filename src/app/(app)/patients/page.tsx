@@ -20,10 +20,10 @@ import { Badge } from '@/components/ui/badge';
 
 const initialPatientsData = [
   { id: "PAT001", fullName: "Mr. Shivek Bhasin", gender: "Male", phone: "9876543210", email: "gamerloft14@gmail.com", status: "Active", imageSeed: "man avatar" },
-  { id: "PAT002", name: "Ms. Anya Sharma", gender: "Female", phone: "8765432109", email: "anya.sharma@example.com", status: "Active", imageSeed: "woman avatar" },
-  { id: "PAT003", name: "Dr. Rohan Verma", gender: "Male", phone: "7654321098", email: "rohan.verma@example.com", status: "Inactive", imageSeed: "doctor avatar" },
-  { id: "PAT004", name: "Mrs. Priya Patel", gender: "Female", phone: "6543210987", email: "priya.patel@example.com", status: "Active", imageSeed: "female character" },
-  { id: "PAT005", name: "Mr. Arjun Reddy", gender: "Male", phone: "5432109876", email: "arjun.reddy@example.com", status: "Pending", imageSeed: "male character" },
+  { id: "PAT002", fullName: "Ms. Anya Sharma", gender: "Female", phone: "8765432109", email: "anya.sharma@example.com", status: "Active", imageSeed: "woman avatar" },
+  { id: "PAT003", fullName: "Dr. Rohan Verma", gender: "Male", phone: "7654321098", email: "rohan.verma@example.com", status: "Inactive", imageSeed: "doctor avatar" },
+  { id: "PAT004", fullName: "Mrs. Priya Patel", gender: "Female", phone: "6543210987", email: "priya.patel@example.com", status: "Active", imageSeed: "female character" },
+  { id: "PAT005", fullName: "Mr. Arjun Reddy", gender: "Male", phone: "5432109876", email: "arjun.reddy@example.com", status: "Pending", imageSeed: "male character" },
 ];
 
 const additionalPatientsData = [
@@ -37,9 +37,9 @@ export default function PatientsPage() {
   const [showMoreCount, setShowMoreCount] = React.useState(0);
 
   const filteredPatients = patients.filter(patient =>
-    patient.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.phone.includes(searchTerm)
+    (patient.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (patient.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (patient.phone || '').includes(searchTerm)
   );
 
   const handleShowMore = () => {
@@ -174,3 +174,4 @@ export default function PatientsPage() {
     </div>
   );
 }
+
