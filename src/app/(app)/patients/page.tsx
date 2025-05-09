@@ -21,9 +21,9 @@ import { Badge } from '@/components/ui/badge';
 const initialPatientsData = [
   { id: "PAT001", fullName: "Mr. Shivek Bhasin", gender: "Male", phone: "9876543210", email: "gamerloft14@gmail.com", status: "Active", imageSeed: "man avatar" },
   { id: "PAT002", fullName: "Ms. Anya Sharma", gender: "Female", phone: "8765432109", email: "anya.sharma@example.com", status: "Active", imageSeed: "woman avatar" },
-  { id: "PAT003", fullName: "Dr. Rohan Verma", gender: "Male", phone: "7654321098", email: "rohan.verma@example.com", status: "Inactive", imageSeed: "doctor avatar" },
+  { id: "PAT003", fullName: "Dr. Rohan Verma", gender: "Male", phone: "7654321098", email: "rohan.verma@example.com", status: "Closed", imageSeed: "doctor avatar" },
   { id: "PAT004", fullName: "Mrs. Priya Patel", gender: "Female", phone: "6543210987", email: "priya.patel@example.com", status: "Active", imageSeed: "female character" },
-  { id: "PAT005", fullName: "Mr. Arjun Reddy", gender: "Male", phone: "5432109876", email: "arjun.reddy@example.com", status: "Pending", imageSeed: "male character" },
+  { id: "PAT005", fullName: "Mr. Arjun Reddy", gender: "Male", phone: "5432109876", email: "arjun.reddy@example.com", status: "Closed", imageSeed: "male character" },
 ];
 
 const additionalPatientsData = [
@@ -100,15 +100,15 @@ export default function PatientsPage() {
                 <TableRow key={patient.id}>
                    <TableCell className="hidden sm:table-cell">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={`https://picsum.photos/seed/${patient.imageSeed}/40/40`} alt={patient.fullName} data-ai-hint={patient.imageSeed} />
-                      <AvatarFallback>{patient.fullName.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={`https://picsum.photos/seed/${patient.imageSeed}/40/40`} alt={patient.fullName || 'Patient'} data-ai-hint={patient.imageSeed} />
+                      <AvatarFallback>{(patient.fullName || "P").split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2 sm:hidden">
                         <Avatar className="h-8 w-8">
-                        <AvatarImage src={`https://picsum.photos/seed/${patient.imageSeed}/32/32`} alt={patient.fullName} data-ai-hint={patient.imageSeed} />
-                        <AvatarFallback>{patient.fullName.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={`https://picsum.photos/seed/${patient.imageSeed}/32/32`} alt={patient.fullName || 'Patient'} data-ai-hint={patient.imageSeed} />
+                        <AvatarFallback>{(patient.fullName || "P").split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
                         </Avatar>
                         {patient.fullName}
                     </div>
@@ -118,12 +118,12 @@ export default function PatientsPage() {
                   <TableCell className="hidden md:table-cell">{patient.phone}</TableCell>
                   <TableCell className="hidden lg:table-cell">{patient.email}</TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    <Badge 
-                      variant={patient.status === "Active" ? "default" : patient.status === "Pending" ? "secondary" : "outline"}
+                    <Badge
+                      variant={patient.status === "Active" ? "default" : "secondary"}
                       className={
                         patient.status === "Active" ? "bg-accent text-accent-foreground" :
-                        patient.status === "Pending" ? "bg-yellow-500/80 text-yellow-foreground" : 
-                        patient.status === "Inactive" ? "bg-destructive/80 text-destructive-foreground" : ""
+                        patient.status === "Closed" ? "bg-secondary text-secondary-foreground" :
+                        ""
                       }
                     >
                       {patient.status}
