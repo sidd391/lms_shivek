@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,14 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Search,
   PlusCircle,
   ArrowLeft,
@@ -30,11 +23,11 @@ import {
   HeartPulse,
   Microscope,
   Droplets,
-  Activity,
+  Activity, // This icon seems unused in the current context but kept for consistency if needed elsewhere
   PackagePlus,
   Radiation,
   ShieldCheck,
-  ClipboardMedical,
+  Clipboard, // Changed from ClipboardMedical
   MoreHorizontal,
   Edit,
   Trash2,
@@ -158,7 +151,7 @@ const mockTestCategoriesData: Record<string, TestCategoryDetails> = {
     id: "smear-tests",
     name: "Smear Tests",
     description: "Microscopic examination of smears for diagnostic purposes.",
-    icon: ClipboardMedical,
+    icon: Clipboard, // Changed icon
     tests: [
         { id: "SM001", name: "Pap Smear", shortCode: "PAP", price: 700, turnAroundTime: "3-5 days", sampleType: "Cervical Smear" },
     ]
@@ -366,3 +359,4 @@ export default function CategoryTestsPage() {
     </div>
   );
 }
+

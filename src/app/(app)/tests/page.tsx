@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -28,7 +29,7 @@ import {
   PackagePlus,
   Radiation,
   ShieldCheck,
-  ClipboardMedical,
+  Clipboard, // Changed from ClipboardMedical
   FileText,
   Bug,
   Zap,
@@ -56,7 +57,7 @@ const mockCategories: TestCategory[] = [
   { id: "microbiology", name: "Microbiology", description: "Study of microorganisms.", icon: Bug, testCount: 12, imageSeed: "bacteria virus" },
   { id: "radiology", name: "Radiology", description: "Medical imaging techniques.", icon: Radiation, testCount: 8, imageSeed: "xray scan" },
   { id: "serology", name: "Serology", description: "Study of blood serum and immune responses.", icon: ShieldCheck, testCount: 10, imageSeed: "antibody test" },
-  { id: "smear-tests", name: "Smear Tests", description: "Microscopic examination of smears.", icon: ClipboardMedical, testCount: 5, imageSeed: "smear sample" },
+  { id: "smear-tests", name: "Smear Tests", description: "Microscopic examination of smears.", icon: Clipboard, testCount: 5, imageSeed: "smear sample" }, // Changed icon
   { id: "general-panels", name: "General Panels", description: "Bundled common tests.", icon: PackagePlus, testCount: 7, imageSeed: "health package" },
 ];
 
@@ -155,3 +156,4 @@ export default function TestCategoriesPage() {
     </div>
   );
 }
+
