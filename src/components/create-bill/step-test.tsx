@@ -9,13 +9,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import type { Test } from './step-summary'; // Import Test type from step-summary
 
-interface Test {
-  id: string;
-  name: string;
-  price: number;
-  isPackage?: boolean;
-}
+// Moved Test interface to step-summary.tsx as it's used there for props too.
 
 const allAvailableTests: Test[] = [
   { id: "T001", name: "Complete Blood Count (CBC)", price: 300 },
@@ -32,12 +28,21 @@ const allAvailableTests: Test[] = [
 
 interface StepTestProps {
   onTestsSelected?: (tests: Test[]) => void;
-  // Add initialSelectedTests prop if needed for editing scenarios
+  initialSelectedTests?: Test[];
 }
 
-export default function StepTest({ onTestsSelected }: StepTestProps) {
-  const [selectedTests, setSelectedTests] = React.useState<Test[]>([]);
+export default function StepTest({ onTestsSelected, initialSelectedTests = [] }: StepTestProps) {
+  const [selectedTests, setSelectedTests] = React.useState<Test[]>(initialSelectedTests);
   const [openPopover, setOpenPopover] = React.useState(false);
+
+  React.useEffect(() => {
+    // Sync with initialSelectedTests if it changes externally (e.g. navigating back)
+    // This ensures if parent state changes, this component reflects it
+    if (JSON.stringify(initialSelectedTests) !== JSON.stringify(selectedTests)) {
+        setSelectedTests(initialSelectedTests);
+    }
+  }, [initialSelectedTests, selectedTests]);
+
 
   const handleSelectTest = (test: Test) => {
     if (!selectedTests.find(t => t.id === test.id)) {
@@ -65,9 +70,9 @@ export default function StepTest({ onTestsSelected }: StepTestProps) {
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-2xl font-semibold flex items-center">
           <Beaker className="mr-3 h-7 w-7 text-primary" />
-          Tests
+          Select Tests/Packages
         </CardTitle>
-        <CardDescription>Add tests or packages to the bill.</CardDescription>
+        <CardDescription>Add tests or packages to the bill. Search and select from the list below.</CardDescription>
       </CardHeader>
       
       <div className="space-y-4">
@@ -79,7 +84,7 @@ export default function StepTest({ onTestsSelected }: StepTestProps) {
               aria-expanded={openPopover}
               className="w-full justify-between text-muted-foreground hover:text-foreground py-3 text-base"
             >
-              {selectedTests.length > 0 ? `Selected ${selectedTests.length} item(s)` : "Select a test or package..."}
+              {selectedTests.length > 0 ? `Selected ${selectedTests.length} item(s)` : "Click to select a test or package..."}
               <PlusCircle className="ml-2 h-5 w-5 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>

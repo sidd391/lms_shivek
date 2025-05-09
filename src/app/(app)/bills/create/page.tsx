@@ -17,10 +17,9 @@ import BillWizardSteps, { type BillWizardStepInfo } from '@/components/create-bi
 import StepPatient from '@/components/create-bill/step-patient';
 import StepDoctor from '@/components/create-bill/step-doctor';
 import StepTest from '@/components/create-bill/step-test';
-import StepSummary from '@/components/create-bill/step-summary';
+import StepSummary, { type Test as BillTest } from '@/components/create-bill/step-summary'; // Import Test type
 
 // Define types for Patient and Doctor if not already globally available
-// For simplicity, using 'any' for now, but should be replaced with actual types.
 interface Patient {
   id: string;
   fullName: string;
@@ -53,8 +52,7 @@ export default function CreateBillPage() {
   const [currentStep, setCurrentStep] = React.useState(1);
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [selectedDoctor, setSelectedDoctor] = React.useState<Doctor | null>(null);
-  // Add state for selected tests later
-  // const [selectedTests, setSelectedTests] = React.useState<any[]>([]);
+  const [selectedTests, setSelectedTests] = React.useState<BillTest[]>([]);
 
 
   const handleNext = () => {
@@ -71,25 +69,23 @@ export default function CreateBillPage() {
 
   const handlePatientSelected = (patient: Patient | null) => {
     setSelectedPatient(patient);
-    // if (patient) handleNext(); // Optionally auto-navigate if patient selected
   };
 
   const handleDoctorSelected = (doctor: Doctor | null) => {
     setSelectedDoctor(doctor);
-    // if (doctor) handleNext(); // Optionally auto-navigate if doctor selected, or if skipping
   };
 
-  // Add handler for tests selection later
-  // const handleTestsSelected = (tests: any[]) => {
-  //   setSelectedTests(tests);
-  // };
+  const handleTestsSelected = (tests: BillTest[]) => {
+    setSelectedTests(tests);
+  };
 
   const handleFinish = () => {
     // Logic to finalize and create the bill
     console.log("Bill creation process finished.");
     console.log("Patient:", selectedPatient);
     console.log("Doctor:", selectedDoctor);
-    // console.log("Tests:", selectedTests);
+    console.log("Tests:", selectedTests);
+    // Gather data from summary step if needed (e.g., amount received, payment mode)
     // router.push('/bills'); // Or to the newly created bill's page
   }
 
@@ -100,12 +96,19 @@ export default function CreateBillPage() {
       case 2:
         return <StepDoctor onDoctorSelected={handleDoctorSelected} />;
       case 3:
-        return <StepTest /* onTestsSelected={handleTestsSelected} */ />;
+        return <StepTest onTestsSelected={handleTestsSelected} initialSelectedTests={selectedTests} />;
       case 4:
-        return <StepSummary patient={selectedPatient} doctor={selectedDoctor} /* tests={selectedTests} */ />;
+        return <StepSummary patient={selectedPatient} doctor={selectedDoctor} selectedTests={selectedTests} />;
       default:
         return null;
     }
+  };
+
+  const isNextDisabled = () => {
+    if (currentStep === 1 && !selectedPatient) return true;
+    // Add more conditions if Step 3 requires at least one test, etc.
+    // if (currentStep === 3 && selectedTests.length === 0) return true; 
+    return false;
   };
 
   return (
@@ -128,7 +131,7 @@ export default function CreateBillPage() {
       <BillWizardSteps steps={wizardStepsConfig} currentStepId={currentStep} />
 
       <Card className="shadow-lg w-full">
-        <CardContent className="pt-6 min-h-[300px]"> {/* Added min-h for consistent height */}
+        <CardContent className="pt-6 min-h-[300px] md:min-h-[400px]"> {/* Adjusted min-h for better content visibility */}
           <CurrentStepComponent />
         </CardContent>
         <CardFooter className="flex justify-between border-t pt-6">
@@ -143,8 +146,7 @@ export default function CreateBillPage() {
               <Button 
                 onClick={handleNext} 
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                // Disable next if required fields not met, e.g. patient not selected in step 1
-                disabled={currentStep === 1 && !selectedPatient} 
+                disabled={isNextDisabled()} 
               >
                 Next
               </Button>
