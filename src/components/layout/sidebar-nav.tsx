@@ -13,9 +13,10 @@ import {
   BarChart2, 
   UserPlus, 
   TestTube, 
-  Package, 
+  Package as PackageIcon, // Renamed to avoid conflict with Package component
   Users, 
-  Settings 
+  Settings,
+  FlaskConical
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,8 +28,10 @@ const navItems = [
   { href: "/reports", label: "Reports", icon: BarChart2 },
   { href: "/doctors", label: "Doctors", icon: UserPlus },
   { href: "/tests", label: "Tests", icon: TestTube },
-  { href: "/test-packages", label: "Test Packages", icon: Package },
+  { href: "/test-packages", label: "Test Packages", icon: PackageIcon },
   { href: "/staff", label: "Staff", icon: Users },
+  // { href: "/labs", label: "Labs", icon: FlaskConical }, // Commented out as per previous implicit removal
+  // { href: "/users", label: "Users", icon: Users }, // Commented out as per previous implicit removal
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
