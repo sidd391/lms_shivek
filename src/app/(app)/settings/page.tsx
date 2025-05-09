@@ -1,3 +1,6 @@
+
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,8 +9,32 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserCircle, Bell, Lock, Palette } from "lucide-react";
+import * as React from "react"; // Import React for useEffect
 
 export default function SettingsPage() {
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+    // Set initial dark mode state based on localStorage or system preference if available
+    const storedDarkMode = localStorage.getItem('darkMode');
+    if (storedDarkMode === 'true' || (!storedDarkMode && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const handleDarkModeChange = (checked: boolean) => {
+    if (checked) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('darkMode', 'false');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <Card className="shadow-lg">
@@ -52,7 +79,7 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
-                <textarea id="bio" className="w-full min-h-[100px] p-2 border rounded-md" placeholder="Tell us about yourself..."></textarea>
+                <textarea id="bio" className="w-full min-h-[100px] p-2 border rounded-md bg-background text-foreground focus:ring-ring focus:border-ring" placeholder="Tell us about yourself..."></textarea>
               </div>
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Save Profile</Button>
             </CardContent>
@@ -137,13 +164,13 @@ export default function SettingsPage() {
                     Switch to a darker interface.
                   </span>
                 </Label>
-                <Switch id="darkMode" onCheckedChange={(checked) => {
-                  if (checked) {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    document.documentElement.classList.remove('dark');
-                  }
-                }} />
+                {isClient && (
+                  <Switch 
+                    id="darkMode" 
+                    onCheckedChange={handleDarkModeChange}
+                    defaultChecked={document.documentElement.classList.contains('dark')}
+                  />
+                )}
               </div>
               {/* More appearance settings can be added here */}
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Save Appearance</Button>
