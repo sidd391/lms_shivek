@@ -1,5 +1,7 @@
+
 'use client';
 
+import * as React from 'react';
 import type { SubmitHandler } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Atom, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -23,6 +26,12 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -54,45 +63,59 @@ export default function LoginPage() {
           <CardDescription>Sign in to access your QuantumHook LMS account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-5 w-5" /> Login
-                  </>
-                )}
-              </Button>
-            </form>
-          </Form>
+          {isClient ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="you@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-5 w-5" /> Login
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" /> {/* Label */}
+                <Skeleton className="h-10 w-full" /> {/* Input */}
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-20" /> {/* Label */}
+                <Skeleton className="h-10 w-full" /> {/* Input */}
+              </div>
+              <Skeleton className="h-10 w-full" /> {/* Button */}
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col items-center gap-2 pt-6">
             <Link href="#" className="text-sm text-primary hover:underline">
