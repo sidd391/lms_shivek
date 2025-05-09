@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -69,9 +70,11 @@ export default function PatientsPage() {
                 <Search className="mr-2 h-5 w-5 md:hidden" /> {/* Icon for smaller screens */}
                 <span className="hidden md:inline">Search</span>
               </Button>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto">
-                <PlusCircle className="mr-2 h-5 w-5" /> Create
-              </Button>
+              <Link href="/patients/create" passHref>
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto">
+                  <PlusCircle className="mr-2 h-5 w-5" /> Create
+                </Button>
+              </Link>
               <Button variant="outline" size="icon" className="w-full sm:w-auto sm:aspect-square">
                 <Download className="h-5 w-5" />
                 <span className="sr-only">Download Patients Data</span>
