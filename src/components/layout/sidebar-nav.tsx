@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -13,10 +12,10 @@ import {
   BarChart2, 
   UserPlus, 
   TestTube, 
-  Package as PackageIcon, // Renamed to avoid conflict with Package component
+  Package as PackageIcon, 
   Users, 
   Settings,
-  FlaskConical
+  ShieldCheck // Added ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,8 +29,9 @@ const navItems = [
   { href: "/tests", label: "Tests", icon: TestTube },
   { href: "/test-packages", label: "Test Packages", icon: PackageIcon },
   { href: "/staff", label: "Staff", icon: Users },
-  // { href: "/labs", label: "Labs", icon: FlaskConical }, // Commented out as per previous implicit removal
-  // { href: "/users", label: "Users", icon: Users }, // Commented out as per previous implicit removal
+  { href: "/roles-permissions", label: "Roles & Permissions", icon: ShieldCheck }, // Added new item
+  // { href: "/labs", label: "Labs", icon: FlaskConical }, 
+  // { href: "/users", label: "Users", icon: Users }, 
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
