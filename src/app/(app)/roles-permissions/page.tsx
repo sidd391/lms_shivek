@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -245,148 +246,148 @@ export default function RolesPermissionsPage() {
 
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-8 w-8 text-primary" />
-            <div>
-              <CardTitle className="text-3xl font-bold">Roles &amp; Permissions</CardTitle>
-              <CardDescription>Manage user roles and their access to system features.</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1 shadow-md">
+    <AlertDialog open={!!roleToDelete} onOpenChange={(openStatus) => { if (!openStatus) setRoleToDelete(null); }}>
+      <div className="flex flex-col gap-6">
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">User Roles</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {roles.map((role) => (
-              <div
-                key={role.id}
-                className={cn(
-                  "flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors",
-                  selectedRole?.id === role.id
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "hover:bg-muted/50"
-                )}
-                onClick={() => handleRoleSelect(role)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRoleSelect(role);}}
-                tabIndex={0}
-                role="button"
-                aria-label={`Select role ${role.name}`}
-              >
-                <span className="font-medium">{role.name}</span>
-                {role.id !== 'admin' && (
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-7 w-7",
-                        selectedRole?.id === role.id
-                          ? "text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                          : "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRoleToDelete(role);
-                      }}
-                      aria-label={`Delete role ${role.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                )}
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-8 w-8 text-primary" />
+              <div>
+                <CardTitle className="text-3xl font-bold">Roles &amp; Permissions</CardTitle>
+                <CardDescription>Manage user roles and their access to system features.</CardDescription>
               </div>
-            ))}
-             <Button variant="outline" className="w-full mt-4 border-dashed hover:border-solid" onClick={() => setIsAddingRole(true)}>
-              <PlusCircle className="mr-2 h-5 w-5" /> Add New Role
-            </Button>
-
-            {isAddingRole && (
-              <Card className="mt-4 p-4 space-y-3 shadow-inner bg-muted/50">
-                <h4 className="font-semibold">Create New Role</h4>
-                <div>
-                  <Label htmlFor="newRoleName">Role Name</Label>
-                  <Input 
-                    id="newRoleName" 
-                    value={newRoleName} 
-                    onChange={(e) => setNewRoleName(e.target.value)} 
-                    placeholder="e.g., Accountant" 
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                   <Button variant="ghost" size="sm" onClick={() => setIsAddingRole(false)}>Cancel</Button>
-                   <Button size="sm" onClick={handleAddNewRole}>Create Role</Button>
-                </div>
-              </Card>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2 shadow-md">
-          <CardHeader>
-            {selectedRole ? (
-              <>
-                <CardTitle className="text-xl">Permissions for: {selectedRole.name}</CardTitle>
-                <CardDescription>Grant or revoke access to features for this role.</CardDescription>
-              </>
-            ) : (
-              <CardTitle className="text-xl">Select a Role</CardTitle>
-            )}
+            </div>
           </CardHeader>
-          <CardContent>
-            {selectedRole ? (
-              <Accordion type="multiple" defaultValue={allFeaturePermissions.map(m => m.module)} className="w-full">
-                {allFeaturePermissions.map((moduleItem) => {
-                  const ModuleIcon = moduleItem.moduleIcon;
-                  return (
-                  <AccordionItem value={moduleItem.module} key={moduleItem.module}>
-                    <AccordionTrigger className="text-lg hover:no-underline">
-                      <div className="flex items-center gap-2">
-                        <ModuleIcon className="h-5 w-5 text-primary" />
-                        {moduleItem.module}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pl-2">
-                      <div className="space-y-3">
-                        {moduleItem.permissions.map((permission) => (
-                          <div key={permission.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-secondary/50">
-                            <Checkbox
-                              id={permission.id}
-                              checked={selectedRole.permissions.has(permission.id)}
-                              onCheckedChange={(checked) => handlePermissionChange(permission.id, !!checked)}
-                              aria-labelledby={`${permission.id}-label`}
-                            />
-                            <Label htmlFor={permission.id} id={`${permission.id}-label`} className="font-normal cursor-pointer flex-1">
-                              {permission.label}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            ) : (
-              <p className="text-muted-foreground">Please select a role from the left panel to view and manage its permissions.</p>
-            )}
-          </CardContent>
-          {selectedRole && (
-            <CardFooter className="border-t pt-6">
-              <Button onClick={handleSavePermissions} className="ml-auto bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Save className="mr-2 h-5 w-5" /> Save Permissions
-              </Button>
-            </CardFooter>
-          )}
         </Card>
-      </div>
-      <AlertDialog open={!!roleToDelete} onOpenChange={(open) => !open && setRoleToDelete(null)}>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-1 shadow-md">
+            <CardHeader>
+              <CardTitle className="text-xl">User Roles</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {roles.map((role) => (
+                <div
+                  key={role.id}
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors",
+                    selectedRole?.id === role.id
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "hover:bg-muted/50"
+                  )}
+                  onClick={() => handleRoleSelect(role)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRoleSelect(role);}}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select role ${role.name}`}
+                >
+                  <span className="font-medium">{role.name}</span>
+                  {role.id !== 'admin' && (
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-7 w-7",
+                          selectedRole?.id === role.id
+                            ? "text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                            : "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRoleToDelete(role);
+                        }}
+                        aria-label={`Delete role ${role.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                  )}
+                </div>
+              ))}
+               <Button variant="outline" className="w-full mt-4 border-dashed hover:border-solid" onClick={() => setIsAddingRole(true)}>
+                <PlusCircle className="mr-2 h-5 w-5" /> Add New Role
+              </Button>
+
+              {isAddingRole && (
+                <Card className="mt-4 p-4 space-y-3 shadow-inner bg-muted/50">
+                  <h4 className="font-semibold">Create New Role</h4>
+                  <div>
+                    <Label htmlFor="newRoleName">Role Name</Label>
+                    <Input 
+                      id="newRoleName" 
+                      value={newRoleName} 
+                      onChange={(e) => setNewRoleName(e.target.value)} 
+                      placeholder="e.g., Accountant" 
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                     <Button variant="ghost" size="sm" onClick={() => setIsAddingRole(false)}>Cancel</Button>
+                     <Button size="sm" onClick={handleAddNewRole}>Create Role</Button>
+                  </div>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2 shadow-md">
+            <CardHeader>
+              {selectedRole ? (
+                <>
+                  <CardTitle className="text-xl">Permissions for: {selectedRole.name}</CardTitle>
+                  <CardDescription>Grant or revoke access to features for this role.</CardDescription>
+                </>
+              ) : (
+                <CardTitle className="text-xl">Select a Role</CardTitle>
+              )}
+            </CardHeader>
+            <CardContent>
+              {selectedRole ? (
+                <Accordion type="multiple" defaultValue={allFeaturePermissions.map(m => m.module)} className="w-full">
+                  {allFeaturePermissions.map((moduleItem) => {
+                    const ModuleIcon = moduleItem.moduleIcon;
+                    return (
+                    <AccordionItem value={moduleItem.module} key={moduleItem.module}>
+                      <AccordionTrigger className="text-lg hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <ModuleIcon className="h-5 w-5 text-primary" />
+                          {moduleItem.module}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pl-2">
+                        <div className="space-y-3">
+                          {moduleItem.permissions.map((permission) => (
+                            <div key={permission.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-secondary/50">
+                              <Checkbox
+                                id={permission.id}
+                                checked={selectedRole.permissions.has(permission.id)}
+                                onCheckedChange={(checked) => handlePermissionChange(permission.id, !!checked)}
+                                aria-labelledby={`${permission.id}-label`}
+                              />
+                              <Label htmlFor={permission.id} id={`${permission.id}-label`} className="font-normal cursor-pointer flex-1">
+                                {permission.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              ) : (
+                <p className="text-muted-foreground">Please select a role from the left panel to view and manage its permissions.</p>
+              )}
+            </CardContent>
+            {selectedRole && (
+              <CardFooter className="border-t pt-6">
+                <Button onClick={handleSavePermissions} className="ml-auto bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <Save className="mr-2 h-5 w-5" /> Save Permissions
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        </div>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this role?</AlertDialogTitle>
@@ -402,7 +403,7 @@ export default function RolesPermissionsPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      </div>
+    </AlertDialog>
   );
 }
