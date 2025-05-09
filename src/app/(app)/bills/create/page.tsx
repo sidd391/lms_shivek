@@ -11,14 +11,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, FilePlus2, Search as SearchIcon, UserPlus } from "lucide-react";
+import { ArrowLeft, FilePlus2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import BillWizardSteps, { type BillWizardStepInfo } from '@/components/create-bill/bill-wizard-steps';
 import StepPatient from '@/components/create-bill/step-patient';
 import StepDoctor from '@/components/create-bill/step-doctor';
 import StepTest from '@/components/create-bill/step-test';
 import StepSummary from '@/components/create-bill/step-summary';
+
+// Define types for Patient and Doctor if not already globally available
+// For simplicity, using 'any' for now, but should be replaced with actual types.
+interface Patient {
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  age?: number;
+  gender?: string;
+  imageSeed?: string;
+}
+
+interface Doctor {
+  id: string;
+  fullName: string;
+  specialty: string;
+  phone: string;
+  email?: string;
+  imageSeed?: string;
+}
+
 
 const wizardStepsConfig: BillWizardStepInfo[] = [
   { id: 1, name: "Patient" },
@@ -30,7 +51,11 @@ const wizardStepsConfig: BillWizardStepInfo[] = [
 export default function CreateBillPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = React.useState(1);
-  const [selectedPatient, setSelectedPatient] = React.useState<any | null>(null); // Replace 'any' with patient type
+  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = React.useState<Doctor | null>(null);
+  // Add state for selected tests later
+  // const [selectedTests, setSelectedTests] = React.useState<any[]>([]);
+
 
   const handleNext = () => {
     if (currentStep < wizardStepsConfig.length) {
@@ -44,15 +69,27 @@ export default function CreateBillPage() {
     }
   };
 
-  const handlePatientSelected = (patient: any) => { // Replace 'any' with patient type
+  const handlePatientSelected = (patient: Patient | null) => {
     setSelectedPatient(patient);
-    // Potentially auto-navigate to next step or enable next button
-    // handleNext(); 
+    // if (patient) handleNext(); // Optionally auto-navigate if patient selected
   };
+
+  const handleDoctorSelected = (doctor: Doctor | null) => {
+    setSelectedDoctor(doctor);
+    // if (doctor) handleNext(); // Optionally auto-navigate if doctor selected, or if skipping
+  };
+
+  // Add handler for tests selection later
+  // const handleTestsSelected = (tests: any[]) => {
+  //   setSelectedTests(tests);
+  // };
 
   const handleFinish = () => {
     // Logic to finalize and create the bill
-    console.log("Bill creation process finished. Patient:", selectedPatient);
+    console.log("Bill creation process finished.");
+    console.log("Patient:", selectedPatient);
+    console.log("Doctor:", selectedDoctor);
+    // console.log("Tests:", selectedTests);
     // router.push('/bills'); // Or to the newly created bill's page
   }
 
@@ -61,11 +98,11 @@ export default function CreateBillPage() {
       case 1:
         return <StepPatient onPatientSelected={handlePatientSelected} />;
       case 2:
-        return <StepDoctor />;
+        return <StepDoctor onDoctorSelected={handleDoctorSelected} />;
       case 3:
-        return <StepTest />;
+        return <StepTest /* onTestsSelected={handleTestsSelected} */ />;
       case 4:
-        return <StepSummary />;
+        return <StepSummary patient={selectedPatient} doctor={selectedDoctor} /* tests={selectedTests} */ />;
       default:
         return null;
     }
@@ -91,11 +128,7 @@ export default function CreateBillPage() {
       <BillWizardSteps steps={wizardStepsConfig} currentStepId={currentStep} />
 
       <Card className="shadow-lg w-full">
-        {/* CardHeader could be dynamic based on step if needed, or removed if StepComponent handles its own title */}
-        {/* <CardHeader>
-          <CardTitle className="text-xl">{wizardStepsConfig[currentStep - 1].name}</CardTitle>
-        </CardHeader> */}
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 min-h-[300px]"> {/* Added min-h for consistent height */}
           <CurrentStepComponent />
         </CardContent>
         <CardFooter className="flex justify-between border-t pt-6">
@@ -107,7 +140,12 @@ export default function CreateBillPage() {
               Previous
             </Button>
             {currentStep < wizardStepsConfig.length ? (
-              <Button onClick={handleNext} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button 
+                onClick={handleNext} 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                // Disable next if required fields not met, e.g. patient not selected in step 1
+                disabled={currentStep === 1 && !selectedPatient} 
+              >
                 Next
               </Button>
             ) : (
