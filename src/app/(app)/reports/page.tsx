@@ -46,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils"; // Import cn utility
 
 type ReportStatus = "Initial" | "Completed" | "Pending" | "Verified";
 
