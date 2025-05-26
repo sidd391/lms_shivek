@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -92,5 +93,20 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Tiptap basic table styling */
+  .ProseMirror table {
+    @apply table-auto w-full my-4 border-collapse border border-muted;
+  }
+  .ProseMirror th, .ProseMirror td {
+    @apply border border-muted px-3 py-1.5 text-left align-top;
+  }
+  .ProseMirror th {
+    @apply font-semibold bg-muted/50;
+  }
+  /* For table resizing handles if enabled */
+  .ProseMirror .column-resize-handle {
+    @apply bg-primary;
   }
 }

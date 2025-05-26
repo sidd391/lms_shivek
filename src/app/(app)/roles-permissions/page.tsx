@@ -7,9 +7,9 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardFooter, 
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { ShieldCheck, PlusCircle, Save, Trash2, Edit, Users, LayoutDashboard, User, FileText, BarChart2, UserPlus as UserPlusIcon, TestTube, Package as PackageIcon, Settings as SettingsIcon } from "lucide-react";
+import { ShieldCheck, PlusCircle, Save, Trash2, LayoutDashboard, User, FileText, BarChart2, UserPlus as UserPlusIcon, TestTube, Package as PackageIcon, Settings as SettingsIcon, Users as StaffIcon, Loader2 } from "lucide-react";
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -36,11 +36,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// Define staffRoles and StaffRole type directly in the frontend
+const predefinedStaffRolesArray = ["Admin", "Technician", "Receptionist", "Doctor", "Accountant", "Other"] as const;
+type StaffRole = typeof predefinedStaffRolesArray[number];
+
 
 interface Permission {
   id: string;
   label: string;
-  icon?: LucideIcon; // Optional icon for permission
+  icon?: LucideIcon;
 }
 
 interface ModulePermissions {
@@ -50,9 +54,9 @@ interface ModulePermissions {
 }
 
 interface Role {
-  id: string;
-  name: string;
-  permissions: Set<string>; // Set of permission IDs
+  id: string; // Corresponds to roleName used in API (e.g., "Admin", "Doctor", "custom-role")
+  name: string; // Display name for the role
+  permissions: Set<string>;
 }
 
 const allFeaturePermissions: ModulePermissions[] = [
@@ -121,7 +125,7 @@ const allFeaturePermissions: ModulePermissions[] = [
   },
   {
     module: "Staff",
-    moduleIcon: Users,
+    moduleIcon: StaffIcon,
     permissions: [
       { id: "staff.view", label: "View List" },
       { id: "staff.create", label: "Create New" },
@@ -136,36 +140,100 @@ const allFeaturePermissions: ModulePermissions[] = [
   },
 ];
 
-const initialRoles: Role[] = [
-  {
-    id: 'admin',
-    name: 'Administrator',
-    permissions: new Set(allFeaturePermissions.flatMap(m => m.permissions.map(p => p.id))),
-  },
-  {
-    id: 'doctor',
-    name: 'Doctor',
-    permissions: new Set(['dashboard.view', 'patients.view', 'patients.edit', 'bills.view', 'reports.view', 'doctors.view']),
-  },
-  {
-    id: 'receptionist',
-    name: 'Receptionist',
-    permissions: new Set(['patients.view', 'patients.create', 'patients.edit', 'bills.view', 'bills.create', 'doctors.view']),
-  },
-  {
-    id: 'technician',
-    name: 'Lab Technician',
-    permissions: new Set(['tests.view.tests', 'reports.view', 'reports.generate']),
-  },
-];
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export default function RolesPermissionsPage() {
   const { toast } = useToast();
-  const [roles, setRoles] = React.useState<Role[]>(initialRoles);
-  const [selectedRole, setSelectedRole] = React.useState<Role | null>(roles.length > 0 ? roles[0] : null);
+  const [roles, setRoles] = React.useState<Role[]>([]);
+  const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
   const [newRoleName, setNewRoleName] = React.useState('');
   const [isAddingRole, setIsAddingRole] = React.useState(false);
   const [roleToDelete, setRoleToDelete] = React.useState<Role | null>(null);
+  const [isLoadingRoles, setIsLoadingRoles] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  const fetchRolesAndPermissions = React.useCallback(async () => {
+    setIsLoadingRoles(true);
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+      setIsLoadingRoles(false);
+      return;
+    }
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/role-permissions`, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (!response.ok) throw new Error('Failed to fetch roles and permissions.');
+      
+      const result = await response.json();
+      if (result.success && typeof result.data === 'object' && result.data !== null) {
+        const rolesFromApi: Role[] = Object.entries(result.data).map(([name, perms]) => ({
+          id: name, 
+          name: name,
+          permissions: new Set(perms as string[]),
+        }));
+        
+        const currentPredefinedRoleNames = predefinedStaffRolesArray.map(r => r);
+        currentPredefinedRoleNames.forEach(predefinedRoleName => {
+            if(!rolesFromApi.find(r => r.name === predefinedRoleName)){
+                rolesFromApi.push({
+                    id: predefinedRoleName,
+                    name: predefinedRoleName,
+                    permissions: new Set()
+                });
+            }
+        });
+        
+        rolesFromApi.sort((a, b) => {
+            const aIsPredefined = currentPredefinedRoleNames.includes(a.name as StaffRole);
+            const bIsPredefined = currentPredefinedRoleNames.includes(b.name as StaffRole);
+            if (aIsPredefined && !bIsPredefined) return -1;
+            if (!aIsPredefined && bIsPredefined) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        setRoles(rolesFromApi);
+      } else {
+        throw new Error(result.message || 'Failed to parse roles data.');
+      }
+    } catch (error: any) {
+      toast({ title: "Error Loading Roles", description: error.message, variant: "destructive" });
+      setRoles([]);
+    } finally {
+      setIsLoadingRoles(false);
+    }
+  }, [toast]); 
+
+  React.useEffect(() => {
+    fetchRolesAndPermissions();
+  }, [fetchRolesAndPermissions]); 
+
+
+  React.useEffect(() => {
+    if (isLoadingRoles) {
+      return; 
+    }
+
+    if (roles.length > 0) {
+      const currentSelectedId = selectedRole?.id;
+      const roleInNewList = roles.find(r => r.id === currentSelectedId);
+
+      if (roleInNewList) {
+        if (roleInNewList !== selectedRole || 
+            JSON.stringify(Array.from(roleInNewList.permissions)) !== JSON.stringify(Array.from(selectedRole?.permissions || []))) {
+          setSelectedRole(roleInNewList);
+        }
+      } else {
+        setSelectedRole(roles.find(r => r.name === 'Admin') || roles[0]);
+      }
+    } else {
+      if (selectedRole !== null) {
+          setSelectedRole(null);
+      }
+    }
+  }, [roles, selectedRole, isLoadingRoles]);
+
 
   const handleRoleSelect = (role: Role) => {
     setSelectedRole(role);
@@ -180,68 +248,142 @@ export default function RolesPermissionsPage() {
     } else {
       updatedPermissions.delete(permissionId);
     }
-
-    const updatedRole = { ...selectedRole, permissions: updatedPermissions };
-    setSelectedRole(updatedRole);
-    setRoles(roles.map(r => r.id === selectedRole.id ? updatedRole : r));
+    
+    setSelectedRole({ ...selectedRole, permissions: updatedPermissions });
+    
   };
 
-  const handleSavePermissions = () => {
+  const handleSavePermissions = async () => {
     if (!selectedRole) return;
-    console.log(`Saving permissions for role: ${selectedRole.name}`, selectedRole.permissions);
-    toast({
-      title: "Permissions Saved",
-      description: `Permissions for role "${selectedRole.name}" have been updated.`,
-    });
+    setIsSaving(true);
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/role-permissions/${selectedRole.name}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}` 
+        },
+        body: JSON.stringify({ permissions: Array.from(selectedRole.permissions) }),
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        toast({
+          title: "Permissions Saved",
+          description: `Permissions for role "${selectedRole.name}" have been updated.`,
+        });
+        
+        fetchRolesAndPermissions(); 
+      } else {
+        throw new Error(result.message || 'Failed to save permissions.');
+      }
+    } catch (error: any) {
+      toast({ title: "Error Saving Permissions", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleAddNewRole = () => {
+  const handleAddNewRole = async () => {
     if (!newRoleName.trim()) {
       toast({ title: "Error", description: "Role name cannot be empty.", variant: "destructive" });
       return;
     }
-    const newRoleId = newRoleName.toLowerCase().replace(/\s+/g, '-');
-    if (roles.find(r => r.id === newRoleId)) {
-      toast({ title: "Error", description: "A role with this name (or similar ID) already exists.", variant: "destructive" });
+    const trimmedNewRoleName = newRoleName.trim();
+    if (roles.find(r => r.name.toLowerCase() === trimmedNewRoleName.toLowerCase())) {
+      toast({ title: "Error", description: "A role with this name already exists.", variant: "destructive" });
       return;
     }
-    const newRole: Role = {
-      id: newRoleId,
-      name: newRoleName.trim(),
-      permissions: new Set(),
-    };
-    setRoles([...roles, newRole]);
-    setSelectedRole(newRole);
-    setNewRoleName('');
-    setIsAddingRole(false);
-    toast({ title: "Role Added", description: `Role "${newRole.name}" has been created.` });
+    
+    setIsSaving(true); 
+    const authToken = localStorage.getItem('authToken');
+     if (!authToken) {
+      toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+       
+      const response = await fetch(`${BACKEND_API_URL}/role-permissions/${trimmedNewRoleName}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}` 
+        },
+        body: JSON.stringify({ permissions: [] }), 
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const newRole: Role = {
+          id: trimmedNewRoleName, 
+          name: trimmedNewRoleName,
+          permissions: new Set(),
+        };
+        setRoles(prevRoles => [...prevRoles, newRole].sort((a,b) => a.name.localeCompare(b.name)));
+        setSelectedRole(newRole);
+        setNewRoleName('');
+        setIsAddingRole(false);
+        toast({ title: "Role Added", description: `Role "${newRole.name}" has been created.` });
+      } else {
+        throw new Error(result.message || 'Failed to create role on server.');
+      }
+    } catch (error: any) {
+        toast({ title: "Error Adding Role", description: error.message, variant: "destructive" });
+    } finally {
+        setIsSaving(false);
+    }
   };
 
-  const confirmDeleteRole = () => {
+  const confirmDeleteRole = async () => {
     if (!roleToDelete) return;
 
-    if (roleToDelete.id === 'admin') {
+    if (predefinedStaffRolesArray.map(r => r.toLowerCase()).includes(roleToDelete.name.toLowerCase())) {
         toast({
             title: "Cannot Delete Role",
-            description: "The Administrator role cannot be deleted.",
+            description: `The predefined role "${roleToDelete.name}" cannot be deleted.`,
             variant: "destructive",
         });
         setRoleToDelete(null);
         return;
     }
-
-    setRoles(prevRoles => prevRoles.filter(role => role.id !== roleToDelete.id));
     
-    if (selectedRole?.id === roleToDelete.id) {
-        const newRolesList = roles.filter(role => role.id !== roleToDelete.id);
-        setSelectedRole(newRolesList.length > 0 ? newRolesList[0] : null);
+    setIsSaving(true);
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+      setIsSaving(false);
+      return;
     }
-    
-    toast({
-        title: "Role Deleted",
-        description: `The role "${roleToDelete.name}" has been successfully deleted.`,
-    });
-    setRoleToDelete(null);
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/role-permissions/${roleToDelete.name}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const updatedRoles = roles.filter(role => role.id !== roleToDelete.id);
+        setRoles(updatedRoles);
+        if (selectedRole?.id === roleToDelete.id) {
+            setSelectedRole(updatedRoles.length > 0 ? (updatedRoles.find(r => r.name === 'Admin') || updatedRoles[0]) : null);
+        }
+        toast({ title: "Role Deleted", description: `The role "${roleToDelete.name}" has been successfully deleted.` });
+      } else {
+        throw new Error(result.message || 'Failed to delete role.');
+      }
+    } catch (error: any) {
+      toast({ title: "Error Deleting Role", description: error.message, variant: "destructive" });
+    } finally {
+      setRoleToDelete(null);
+      setIsSaving(false);
+    }
   };
 
 
@@ -254,7 +396,7 @@ export default function RolesPermissionsPage() {
               <ShieldCheck className="h-8 w-8 text-primary" />
               <div>
                 <CardTitle className="text-3xl font-bold">Roles &amp; Permissions</CardTitle>
-                <CardDescription>Manage user roles and their access to system features.</CardDescription>
+                
               </div>
             </div>
           </CardHeader>
@@ -266,45 +408,51 @@ export default function RolesPermissionsPage() {
               <CardTitle className="text-xl">User Roles</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {roles.map((role) => (
-                <div
-                  key={role.id}
-                  className={cn(
-                    "flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors",
-                    selectedRole?.id === role.id
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "hover:bg-muted/50"
-                  )}
-                  onClick={() => handleRoleSelect(role)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRoleSelect(role);}}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Select role ${role.name}`}
-                >
-                  <span className="font-medium">{role.name}</span>
-                  {role.id !== 'admin' && (
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-7 w-7",
-                          selectedRole?.id === role.id
-                            ? "text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                            : "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRoleToDelete(role);
-                        }}
-                        aria-label={`Delete role ${role.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                  )}
+              {isLoadingRoles ? (
+                <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded-md animate-pulse"></div>)}
                 </div>
-              ))}
+              ) : (
+                roles.map((role) => (
+                  <div
+                    key={role.id}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors",
+                      selectedRole?.id === role.id
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-muted/50"
+                    )}
+                    onClick={() => handleRoleSelect(role)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRoleSelect(role);}}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Select role ${role.name}`}
+                  >
+                    <span className="font-medium">{role.name}</span>
+                    {!predefinedStaffRolesArray.map(r => r.toLowerCase()).includes(role.name.toLowerCase()) && (
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-7 w-7",
+                            selectedRole?.id === role.id
+                              ? "text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                              : "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRoleToDelete(role);
+                          }}
+                          aria-label={`Delete role ${role.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                    )}
+                  </div>
+                ))
+              )}
                <Button variant="outline" className="w-full mt-4 border-dashed hover:border-solid" onClick={() => setIsAddingRole(true)}>
                 <PlusCircle className="mr-2 h-5 w-5" /> Add New Role
               </Button>
@@ -322,8 +470,10 @@ export default function RolesPermissionsPage() {
                     />
                   </div>
                   <div className="flex gap-2 justify-end">
-                     <Button variant="ghost" size="sm" onClick={() => setIsAddingRole(false)}>Cancel</Button>
-                     <Button size="sm" onClick={handleAddNewRole}>Create Role</Button>
+                     <Button variant="ghost" size="sm" onClick={() => setIsAddingRole(false)} disabled={isSaving}>Cancel</Button>
+                     <Button size="sm" onClick={handleAddNewRole} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Role"}
+                     </Button>
                   </div>
                 </Card>
               )}
@@ -342,7 +492,19 @@ export default function RolesPermissionsPage() {
               )}
             </CardHeader>
             <CardContent>
-              {selectedRole ? (
+              {isLoadingRoles && !selectedRole ? (
+                 <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="p-4 border rounded-md">
+                            <div className="h-6 bg-muted rounded-md w-1/3 mb-3 animate-pulse"></div>
+                            <div className="space-y-2">
+                                <div className="h-5 bg-muted/50 rounded-md w-3/4 animate-pulse"></div>
+                                <div className="h-5 bg-muted/50 rounded-md w-1/2 animate-pulse"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+              ) : selectedRole ? (
                 <Accordion type="multiple" defaultValue={allFeaturePermissions.map(m => m.module)} className="w-full">
                   {allFeaturePermissions.map((moduleItem) => {
                     const ModuleIcon = moduleItem.moduleIcon;
@@ -359,12 +521,13 @@ export default function RolesPermissionsPage() {
                           {moduleItem.permissions.map((permission) => (
                             <div key={permission.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-secondary/50">
                               <Checkbox
-                                id={permission.id}
+                                id={`${selectedRole.id}-${permission.id}`} 
                                 checked={selectedRole.permissions.has(permission.id)}
                                 onCheckedChange={(checked) => handlePermissionChange(permission.id, !!checked)}
-                                aria-labelledby={`${permission.id}-label`}
+                                aria-labelledby={`${selectedRole.id}-${permission.id}-label`}
+                                disabled={predefinedStaffRolesArray.map(r => r.toLowerCase()).includes(selectedRole.name.toLowerCase() as StaffRole) && selectedRole.name.toLowerCase() === 'admin'} 
                               />
-                              <Label htmlFor={permission.id} id={`${permission.id}-label`} className="font-normal cursor-pointer flex-1">
+                              <Label htmlFor={`${selectedRole.id}-${permission.id}`} id={`${selectedRole.id}-${permission.id}-label`} className="font-normal cursor-pointer flex-1">
                                 {permission.label}
                               </Label>
                             </div>
@@ -380,9 +543,14 @@ export default function RolesPermissionsPage() {
               )}
             </CardContent>
             {selectedRole && (
-              <CardFooter className="border-t pt-6">
-                <Button onClick={handleSavePermissions} className="ml-auto bg-accent hover:bg-accent/90 text-accent-foreground">
-                  <Save className="mr-2 h-5 w-5" /> Save Permissions
+              <CardFooter className="border-t pt-6 flex justify-end"> 
+                <Button 
+                  onClick={handleSavePermissions} 
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground" 
+                  disabled={isSaving || (predefinedStaffRolesArray.map(r => r.toLowerCase()).includes(selectedRole.name.toLowerCase() as StaffRole) && selectedRole.name.toLowerCase() === 'admin')}
+                >
+                  {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
+                   Save Permissions
                 </Button>
               </CardFooter>
             )}
@@ -392,14 +560,14 @@ export default function RolesPermissionsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this role?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Deleting the role "{roleToDelete?.name}" will remove it permanently.
-              Any users assigned to this role may lose their specific permissions.
+              This action cannot be undone. Deleting the role "{roleToDelete?.name}" will remove its permission configurations.
+              Users assigned this role will need to be reassigned.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRoleToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteRole} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-              Delete Role
+            <AlertDialogCancel onClick={() => setRoleToDelete(null)} disabled={isSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteRole} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" disabled={isSaving}>
+             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Role"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -407,3 +575,4 @@ export default function RolesPermissionsPage() {
     </AlertDialog>
   );
 }
+

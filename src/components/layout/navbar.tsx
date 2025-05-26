@@ -1,3 +1,7 @@
+
+'use client';
+
+import * as React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,10 +13,57 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Atom, LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export function Navbar() {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    // Always remove token from client first
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('appLabCode'); // Also clear lab code for a full reset
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // No Authorization header needed for logout typically,
+          // but if your backend expects it for some reason, add it.
+        },
+      });
+
+      // We don't strictly need to check backend response for logout success
+      // as the primary action (clearing client token) is done.
+      // But it's good to log if the backend call failed for other reasons.
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({ message: "Backend logout endpoint error."}));
+        console.warn("Backend logout call failed or returned error:", result.message);
+      }
+      
+      toast({
+        title: "Logout Successful",
+        description: "You have been logged out.",
+      });
+
+    } catch (error) {
+      console.error('Logout request error:', error);
+      // Even if backend call fails, client-side token is cleared, so consider it a client-side success.
+      toast({
+        title: "Logout Successful (Client)",
+        description: "Your session has been cleared locally.",
+      });
+    } finally {
+      router.push('/'); 
+    }
+  };
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
       <div className="md:hidden">
@@ -20,8 +71,6 @@ export function Navbar() {
       </div>
       <div className="flex items-center gap-2">
         {/* App Logo/Name could be here if not in sidebar header, or keep it minimal */}
-        {/* <Atom className="h-6 w-6 text-primary" />
-        <h1 className="text-lg font-semibold text-foreground">QuantumHook LMS</h1> */}
       </div>
       <div className="ml-auto flex items-center gap-4">
         <DropdownMenu>
@@ -36,18 +85,24 @@ export function Navbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
-            <Link href="/settings" passHref>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+            <Link href="/profile" passHref legacyBehavior>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <a>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </a>
+              </DropdownMenuItem>
+            </Link>
+            <Link href="/settings" passHref legacyBehavior>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <a>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </a>
               </DropdownMenuItem>
             </Link>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
@@ -57,3 +112,4 @@ export function Navbar() {
     </header>
   );
 }
+    

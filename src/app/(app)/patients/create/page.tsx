@@ -35,6 +35,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Save, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
 const patientFormSchema = z.object({
   title: z.enum(['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Other'], {
     required_error: 'Title is required.',
@@ -47,7 +49,7 @@ const patientFormSchema = z.object({
   bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'], {
     required_error: 'Blood group is required.',
   }),
-  age: z.coerce.number().int().min(0, 'Age must be a positive number.').optional(),
+  age: z.coerce.number().int().min(0, 'Age must be a positive number.'), // Made age required
   dobDay: z.string().optional(),
   dobMonth: z.string().optional(),
   dobYear: z.string()
@@ -58,10 +60,9 @@ const patientFormSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
   phone: z.string()
     .min(10, 'Phone number must be at least 10 digits.')
-    .regex(/^\+?[0-9\s-()]+$/, 'Invalid phone number format.')
-    .optional().or(z.literal('')),
+    .regex(/^\+?[0-9\s-()]+$/, 'Invalid phone number format.'), // Made phone required
   address: z.string().optional(),
-  patientId: z.string().optional(), // This might be auto-generated or have specific validation
+  patientId: z.string().optional(), 
 });
 
 type PatientFormValues = z.infer<typeof patientFormSchema>;
@@ -85,27 +86,63 @@ export default function CreatePatientPage() {
       lastName: '',
       gender: undefined,
       bloodGroup: undefined,
-      age: undefined,
+      age: undefined, 
       dobDay: undefined,
       dobMonth: undefined,
       dobYear: '',
       email: '',
-      phone: '',
+      phone: '', 
       address: '',
       patientId: '',
     },
   });
 
-  const onSubmit: SubmitHandler<PatientFormValues> = (data) => {
-    console.log('Patient data:', data);
-    // Here you would typically send the data to your backend
-    toast({
-      title: 'Patient Created',
-      description: `${data.firstName} ${data.lastName} has been successfully added.`,
-    });
-    // Optionally redirect or reset form
-    // router.push('/patients');
-    form.reset();
+  const onSubmit: SubmitHandler<PatientFormValues> = async (data) => {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You are not logged in. Please login to create a patient.',
+        variant: 'destructive',
+      });
+      router.push('/'); 
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/patients`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: 'Patient Created',
+          description: `${result.data.firstName} ${result.data.lastName} (ID: ${result.data.patientId}) has been successfully added.`,
+        });
+        form.reset();
+        // router.push('/patients'); 
+      } else {
+        toast({
+          title: 'Failed to Create Patient',
+          description: result.message || 'An error occurred.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Create patient request error:', error);
+      toast({
+        title: 'Network Error',
+        description: 'Could not connect to the server. Please try again later.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -139,7 +176,7 @@ export default function CreatePatientPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>Title *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -163,7 +200,7 @@ export default function CreatePatientPage() {
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>First Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter first name" {...field} />
                     </FormControl>
@@ -176,7 +213,7 @@ export default function CreatePatientPage() {
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel>Last Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter last name" {...field} />
                     </FormControl>
@@ -189,7 +226,7 @@ export default function CreatePatientPage() {
                 name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
+                    <FormLabel>Gender *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -213,7 +250,7 @@ export default function CreatePatientPage() {
                 name="bloodGroup"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Blood Group</FormLabel>
+                    <FormLabel>Blood Group *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -237,9 +274,15 @@ export default function CreatePatientPage() {
                 name="age"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Age</FormLabel>
+                    <FormLabel>Age *</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Enter age" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} />
+                      <Input 
+                        type="number" 
+                        placeholder="Enter age" 
+                        {...field} 
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -253,7 +296,7 @@ export default function CreatePatientPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Day</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Day" />
@@ -277,7 +320,7 @@ export default function CreatePatientPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Month</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Month" />
@@ -335,7 +378,7 @@ export default function CreatePatientPage() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number (Optional)</FormLabel>
+                    <FormLabel>Phone Number *</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="+1 234 567 8900" {...field} />
                     </FormControl>
@@ -361,9 +404,9 @@ export default function CreatePatientPage() {
                 name="patientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Patient ID (Optional)</FormLabel>
+                    <FormLabel>Patient ID (Optional - Auto-generated if left blank)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter patient ID" {...field} />
+                      <Input placeholder="e.g. PAT12345" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -386,3 +429,5 @@ export default function CreatePatientPage() {
     </div>
   );
 }
+
+    

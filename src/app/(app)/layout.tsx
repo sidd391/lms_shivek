@@ -1,3 +1,4 @@
+
 import type { PropsWithChildren } from "react";
 import {
   SidebarProvider,
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
-import { Atom } from "lucide-react";
+import Image from "next/image"; // Import next/image
 import Link from "next/link";
 
 export default function AppLayout({ children }: PropsWithChildren) {
@@ -19,7 +20,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
         <SidebarContent>
           <SidebarHeader className="p-4">
             <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-              <Atom className="h-8 w-8 text-sidebar-accent" />
+              {/* Image component for the logo */}
+              <Image 
+                src="/Quantumhook_logo.png" 
+                alt="QuantumHook Logo" 
+                width={52} // Adjusted width for expanded state
+                height={52} // Adjusted height for expanded state
+                className="object-contain group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" // Collapsed state size
+                data-ai-hint="company logo"
+                priority 
+              />
               <span className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                 QuantumHook
               </span>

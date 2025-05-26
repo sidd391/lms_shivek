@@ -17,58 +17,80 @@ import {
   Search,
   PlusCircle,
   TestTube,
-  FlaskConical,
-  HeartPulse,
-  Microscope,
-  Droplets,
-  Activity,
-  Users,
-  Settings,
   ChevronRight,
   Eye,
-  PackagePlus,
-  Radiation,
-  ShieldCheck,
-  Clipboard, // Changed from ClipboardMedical
-  FileText,
-  Bug,
-  Zap,
-  Container,
+  Container, 
+  Loader2, 
+  Edit, 
 } from "lucide-react";
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation'; 
+import { getIconByName } from '@/lib/icon-map';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface TestCategory {
-  id: string;
+
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+export interface TestCategory { 
+  id: number; 
   name: string;
-  description: string;
-  icon: LucideIcon;
-  testCount: number;
-  imageSeed: string; // for placeholder image in avatar
+  description: string | null;
+  icon: string | null; 
+  testCount: number; 
+  imageSeed: string | null;
 }
-
-const mockCategories: TestCategory[] = [
-  { id: "biochemistry", name: "Biochemistry", description: "Analysis of chemical processes.", icon: FlaskConical, testCount: 25, imageSeed: "biochemistry lab" },
-  { id: "cardiology", name: "Cardiology", description: "Study of heart disorders.", icon: HeartPulse, testCount: 15, imageSeed: "cardiology heart" },
-  { id: "clinical-pathology", name: "Clinical Pathology", description: "Diagnosis of disease using lab testing.", icon: Microscope, testCount: 30, imageSeed: "pathology slides" },
-  { id: "haematology", name: "Haematology", description: "Study of blood and blood disorders.", icon: Droplets, testCount: 18, imageSeed: "blood cells" },
-  { id: "hormones", name: "Hormones", description: "Analysis of hormone levels.", icon: Zap, testCount: 22, imageSeed: "endocrine system" },
-  { id: "microbiology", name: "Microbiology", description: "Study of microorganisms.", icon: Bug, testCount: 12, imageSeed: "bacteria virus" },
-  { id: "radiology", name: "Radiology", description: "Medical imaging techniques.", icon: Radiation, testCount: 8, imageSeed: "xray scan" },
-  { id: "serology", name: "Serology", description: "Study of blood serum and immune responses.", icon: ShieldCheck, testCount: 10, imageSeed: "antibody test" },
-  { id: "smear-tests", name: "Smear Tests", description: "Microscopic examination of smears.", icon: Clipboard, testCount: 5, imageSeed: "smear sample" }, // Changed icon
-  { id: "general-panels", name: "General Panels", description: "Bundled common tests.", icon: PackagePlus, testCount: 7, imageSeed: "health package" },
-];
 
 
 export default function TestCategoriesPage() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [categories, setCategories] = React.useState<TestCategory[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const filteredCategories = mockCategories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  React.useEffect(() => {
+    const fetchCategories = async () => {
+      setIsLoading(true);
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+        router.push('/');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/test-categories?search=${searchTerm}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        if (!response.ok) {
+          if (response.status === 401) router.push('/');
+          throw new Error('Failed to fetch test categories');
+        }
+        const result = await response.json();
+        if (result.success) {
+          setCategories(result.data);
+        } else {
+          toast({ title: "Error", description: result.message || "Could not fetch categories.", variant: "destructive" });
+        }
+      } catch (error: any) {
+        toast({ title: "Network Error", description: error.message || "Failed to connect to server.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+        fetchCategories();
+    }, searchTerm ? 300 : 0); 
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, router, toast]);
+
+
+  const filteredCategories = categories; 
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,38 +124,67 @@ export default function TestCategoriesPage() {
         </CardHeader>
       </Card>
 
-      {filteredCategories.length > 0 ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCategories.map((category) => (
-            <Card key={category.id} className="shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col">
+          {[...Array(3)].map((_, i) => (
+            <Card key={`skeleton-${i}`} className="shadow-md flex flex-col">
               <CardHeader className="flex-grow">
                 <div className="flex items-center gap-4 mb-3">
-                  <Avatar className="h-12 w-12 bg-primary/10 text-primary">
-                     {/* Using picsum for icon placeholder based on category name */}
-                    <AvatarImage src={`https://picsum.photos/seed/${category.imageSeed}/48/48`} alt={category.name} data-ai-hint={category.imageSeed} />
-                    <AvatarFallback>
-                      <category.icon className="h-6 w-6" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="text-xl font-semibold">{category.name}</CardTitle>
-                    <CardDescription className="text-sm">{category.description}</CardDescription>
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-32 rounded" />
+                    <Skeleton className="h-4 w-48 rounded" />
                   </div>
                 </div>
-                 <Badge variant="secondary" className="w-fit">
-                  {category.testCount} Test{category.testCount !== 1 ? 's' : ''}
-                </Badge>
+                <Skeleton className="h-5 w-20 rounded-full" />
               </CardHeader>
-              <CardFooter className="border-t pt-4">
-                <Link href={`/tests/${category.id}`} passHref className="w-full">
-                  <Button variant="outline" className="w-full group hover:bg-accent hover:text-accent-foreground">
-                    <Eye className="mr-2 h-5 w-5 text-primary group-hover:text-accent-foreground" /> View Tests
-                    <ChevronRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
-                  </Button>
-                </Link>
+              <CardFooter className="border-t pt-4 flex gap-2">
+                <Skeleton className="h-10 w-1/2 rounded-md" />
+                <Skeleton className="h-10 w-1/2 rounded-md" />
               </CardFooter>
             </Card>
           ))}
+        </div>
+      ) : filteredCategories.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCategories.map((category) => {
+            const CategoryIcon = getIconByName(category.icon);
+            const imageSeed = category.imageSeed || category.name.toLowerCase().replace(/\s+/g, '-');
+            return (
+              <Card key={category.id} className="shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col">
+                <CardHeader className="flex-grow">
+                  <div className="flex items-center gap-4 mb-3">
+                    <Avatar className="h-12 w-12 bg-primary/10 text-primary">
+                      <AvatarImage src={`https://picsum.photos/seed/${imageSeed}/48/48`} alt={category.name} data-ai-hint={imageSeed} />
+                      <AvatarFallback>
+                        <CategoryIcon className="h-6 w-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="text-xl font-semibold">{category.name}</CardTitle>
+                      <CardDescription className="text-sm line-clamp-2">{category.description || "No description available."}</CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="w-fit">
+                     {category.testCount} {category.testCount === 1 ? 'Test' : 'Tests'}
+                  </Badge>
+                </CardHeader>
+                <CardFooter className="border-t pt-4 mt-auto flex gap-2">
+                  <Link href={`/tests/edit-category/${category.id}`} passHref className="flex-1">
+                    <Button variant="outline" className="w-full group hover:bg-secondary hover:text-secondary-foreground">
+                      <Edit className="mr-2 h-5 w-5 text-primary group-hover:text-secondary-foreground" /> Edit
+                    </Button>
+                  </Link>
+                  <Link href={`/tests/${category.id}`} passHref className="flex-1">
+                    <Button variant="outline" className="w-full group hover:bg-accent hover:text-accent-foreground">
+                      <Eye className="mr-2 h-5 w-5 text-primary group-hover:text-accent-foreground" /> View Tests
+                      <ChevronRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
+                    </Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card className="shadow-md">
@@ -156,4 +207,3 @@ export default function TestCategoriesPage() {
     </div>
   );
 }
-

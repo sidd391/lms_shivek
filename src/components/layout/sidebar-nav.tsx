@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -14,8 +15,7 @@ import {
   TestTube, 
   Package as PackageIcon, 
   Users, 
-  Settings,
-  ShieldCheck // Added ShieldCheck
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,10 +29,7 @@ const navItems = [
   { href: "/tests", label: "Tests", icon: TestTube },
   { href: "/test-packages", label: "Test Packages", icon: PackageIcon },
   { href: "/staff", label: "Staff", icon: Users },
-  { href: "/roles-permissions", label: "Roles & Permissions", icon: ShieldCheck }, // Added new item
-  // { href: "/labs", label: "Labs", icon: FlaskConical }, 
-  // { href: "/users", label: "Users", icon: Users }, 
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/roles-permissions", label: "Roles & Permissions", icon: ShieldCheck },
 ];
 
 export function SidebarNav() {

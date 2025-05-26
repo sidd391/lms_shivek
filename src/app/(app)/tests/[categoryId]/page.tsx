@@ -21,28 +21,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"; // Added Table imports
+} from "@/components/ui/table"; 
 import {
   Search,
   PlusCircle,
   ArrowLeft,
   TestTube,
-  FlaskConical,
-  HeartPulse,
-  Microscope,
-  Droplets,
-  Activity, // This icon seems unused in the current context but kept for consistency if needed elsewhere
-  PackagePlus,
-  Radiation,
-  ShieldCheck,
-  Clipboard, 
+  Container,
   MoreHorizontal,
   Edit,
   Trash2,
   Eye,
-  Container,
-  Bug,
-  Zap
+  Loader2,
+  Sigma,
+  ListOrdered,
 } from "lucide-react";
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -54,155 +46,198 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getIconByName } from '@/lib/icon-map'; 
+import { useToast } from '@/hooks/use-toast';
+import type { TestCategory } from '../page'; 
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import type { TestParameterFormValue } from './create-test/page'; // Import TestParameterFormValue
+
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 interface Test {
-  id: string;
+  id: number;
   name: string;
   shortCode: string;
   price: number;
-  turnAroundTime: string; // e.g., "24 hours", "3-5 days"
+  turnAroundTime: string; 
   sampleType: string;
+  methodology?: string | null;
+  normalRange?: string | null; // Overall normal range
+  description?: string | null;
+  categoryId: number;
+  parameters?: TestParameterFormValue[]; // Make parameters optional for list view
 }
 
-interface TestCategoryDetails {
-  id: string;
-  name: string;
-  description: string;
-  icon: LucideIcon;
-  tests: Test[];
-}
-
-// Mock data - in a real app, this would come from an API based on categoryId
-const mockTestCategoriesData: Record<string, TestCategoryDetails> = {
-  biochemistry: {
-    id: "biochemistry",
-    name: "Biochemistry",
-    description: "Analysis of chemical processes within and relating to living organisms.",
-    icon: FlaskConical,
-    tests: [
-      { id: "BC001", name: "Glucose - Fasting", shortCode: "FBS", price: 150, turnAroundTime: "4 hours", sampleType: "Blood" },
-      { id: "BC002", name: "Lipid Profile", shortCode: "LIPID", price: 500, turnAroundTime: "6 hours", sampleType: "Blood" },
-      { id: "BC003", name: "Liver Function Test (LFT)", shortCode: "LFT", price: 700, turnAroundTime: "8 hours", sampleType: "Blood" },
-    ],
-  },
-  cardiology: {
-    id: "cardiology",
-    name: "Cardiology",
-    description: "Study and treatment of disorders of the heart and the blood vessels.",
-    icon: HeartPulse,
-    tests: [
-      { id: "CD001", name: "ECG (Electrocardiogram)", shortCode: "ECG", price: 300, turnAroundTime: "30 mins", sampleType: "N/A" },
-      { id: "CD002", name: "Troponin I", shortCode: "TROP-I", price: 1200, turnAroundTime: "2 hours", sampleType: "Blood" },
-    ],
-  },
-   "clinical-pathology": {
-    id: "clinical-pathology",
-    name: "Clinical Pathology",
-    description: "Diagnosis of disease using lab testing of bodily fluids.",
-    icon: Microscope,
-    tests: [
-      { id: "CP001", name: "Urine Routine & Microscopy", shortCode: "URM", price: 200, turnAroundTime: "3 hours", sampleType: "Urine" },
-      { id: "CP002", name: "Stool Routine Examination", shortCode: "SRM", price: 180, turnAroundTime: "4 hours", sampleType: "Stool" },
-    ],
-  },
-  haematology: {
-    id: "haematology",
-    name: "Haematology",
-    description: "Study of blood, blood-forming organs, and blood diseases.",
-    icon: Droplets,
-    tests: [
-      { id: "HM001", name: "Complete Blood Count (CBC)", shortCode: "CBC", price: 350, turnAroundTime: "2 hours", sampleType: "Blood" },
-      { id: "HM002", name: "ESR (Erythrocyte Sedimentation Rate)", shortCode: "ESR", price: 100, turnAroundTime: "1 hour", sampleType: "Blood" },
-    ],
-  },
-  hormones: {
-    id: "hormones",
-    name: "Hormones",
-    description: "Analysis of hormone levels in the body.",
-    icon: Zap,
-    tests: [
-        { id: "HR001", name: "Thyroid Stimulating Hormone (TSH)", shortCode: "TSH", price: 400, turnAroundTime: "6 hours", sampleType: "Blood" },
-        { id: "HR002", name: "Free Thyroxine (FT4)", shortCode: "FT4", price: 450, turnAroundTime: "6 hours", sampleType: "Blood" },
-    ]
-  },
-  microbiology: {
-    id: "microbiology",
-    name: "Microbiology",
-    description: "Study of microscopic organisms.",
-    icon: Bug,
-    tests: [
-        { id: "MB001", name: "Culture & Sensitivity - Urine", shortCode: "UCS", price: 600, turnAroundTime: "48-72 hours", sampleType: "Urine" },
-        { id: "MB002", name: "Gram Stain", shortCode: "GRAM", price: 250, turnAroundTime: "2 hours", sampleType: "Various" },
-    ]
-  },
-  radiology: {
-    id: "radiology",
-    name: "Radiology",
-    description: "Medical imaging to diagnose and treat diseases.",
-    icon: Radiation,
-    tests: [
-        { id: "RD001", name: "X-Ray Chest PA View", shortCode: "CXR", price: 400, turnAroundTime: "1 hour", sampleType: "N/A" },
-        { id: "RD002", name: "Ultrasound Abdomen", shortCode: "USG-ABD", price: 1200, turnAroundTime: "2 hours", sampleType: "N/A" },
-    ]
-  },
-  serology: {
-    id: "serology",
-    name: "Serology",
-    description: "Study of blood serum for antibodies and other substances.",
-    icon: ShieldCheck,
-    tests: [
-        { id: "SR001", name: "HIV Antibody Test", shortCode: "HIV", price: 500, turnAroundTime: "24 hours", sampleType: "Blood" },
-        { id: "SR002", name: "HBsAg (Hepatitis B)", shortCode: "HBSAG", price: 450, turnAroundTime: "24 hours", sampleType: "Blood" },
-    ]
-  },
-  "smear-tests": {
-    id: "smear-tests",
-    name: "Smear Tests",
-    description: "Microscopic examination of smears for diagnostic purposes.",
-    icon: Clipboard, 
-    tests: [
-        { id: "SM001", name: "Pap Smear", shortCode: "PAP", price: 700, turnAroundTime: "3-5 days", sampleType: "Cervical Smear" },
-    ]
-  },
-  "general-panels": {
-    id: "general-panels",
-    name: "General Panels",
-    description: "Bundled common tests for general health checkups.",
-    icon: PackagePlus,
-    tests: [
-        { id: "GP001", name: "Basic Health Panel", shortCode: "BHP", price: 1500, turnAroundTime: "24 hours", sampleType: "Blood, Urine" },
-        { id: "GP002", name: "Executive Health Check", shortCode: "EHC", price: 4500, turnAroundTime: "48 hours", sampleType: "Blood, Urine, etc." },
-    ]
-  },
-};
 
 export default function CategoryTestsPage() {
   const router = useRouter();
   const params = useParams();
+  const { toast } = useToast();
   const categoryId = params.categoryId as string;
   
-  const [categoryDetails, setCategoryDetails] = React.useState<TestCategoryDetails | null>(null);
+  const [categoryDetails, setCategoryDetails] = React.useState<TestCategory | null>(null);
+  const [tests, setTests] = React.useState<Test[]>([]);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoadingCategory, setIsLoadingCategory] = React.useState(true);
+  const [isLoadingTests, setIsLoadingTests] = React.useState(false);
+  const [selectedTestForView, setSelectedTestForView] = React.useState<Test | null>(null);
+  const [isViewTestDialogOpen, setIsViewTestDialogOpen] = React.useState(false);
+  const [isFetchingTestDetails, setIsFetchingTestDetails] = React.useState(false);
 
   React.useEffect(() => {
-    if (categoryId) {
-      // Simulate API fetch
-      setIsLoading(true);
-      setTimeout(() => {
-        const details = mockTestCategoriesData[categoryId];
-        setCategoryDetails(details || null);
-        setIsLoading(false);
-      }, 500);
+    const fetchCategoryDetails = async () => {
+      if (!categoryId) {
+        setIsLoadingCategory(false);
+        toast({ title: "Error", description: "Category ID is missing.", variant: "destructive" });
+        router.push('/tests');
+        return;
+      }
+      setIsLoadingCategory(true);
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+        router.push('/');
+        setIsLoadingCategory(false);
+        return;
+      }
+
+      try {
+        const categoryResponse = await fetch(`${BACKEND_API_URL}/test-categories/${categoryId}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        if (!categoryResponse.ok) throw new Error('Failed to fetch category details');
+        const categoryResult = await categoryResponse.json();
+        if (categoryResult.success && categoryResult.data) {
+          setCategoryDetails(categoryResult.data);
+        } else {
+          throw new Error(categoryResult.message || 'Could not load category data.');
+        }
+      } catch (error: any) {
+        toast({ title: "Error fetching category", description: error.message || "Failed to load data.", variant: "destructive" });
+      } finally {
+        setIsLoadingCategory(false);
+      }
+    };
+    
+    fetchCategoryDetails();
+  }, [categoryId, router, toast]);
+
+  React.useEffect(() => {
+    const fetchTestsForCategory = async () => {
+      if (!categoryId || !categoryDetails) return;
+      setIsLoadingTests(true);
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        toast({ title: "Authentication Error", description: "Please login.", variant: "destructive" });
+        router.push('/');
+        setIsLoadingTests(false);
+        return;
+      }
+
+      try {
+        const testsResponse = await fetch(`${BACKEND_API_URL}/test-categories/${categoryId}/tests?search=${searchTerm}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        if (!testsResponse.ok) throw new Error('Failed to fetch tests for this category');
+        const testsResult = await testsResponse.json();
+        if (testsResult.success) {
+          setTests(testsResult.data);
+        } else {
+          toast({ title: "Error fetching tests", description: testsResult.message || "Could not load tests.", variant: "destructive" });
+          setTests([]); 
+        }
+      } catch (error: any) {
+        toast({ title: "Network Error", description: error.message || "Failed to load tests data.", variant: "destructive" });
+        setTests([]);
+      } finally {
+        setIsLoadingTests(false);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+        if (categoryDetails) { 
+             fetchTestsForCategory();
+        }
+    }, searchTerm ? 300 : 0);
+    return () => clearTimeout(timer);
+
+  }, [categoryId, categoryDetails, searchTerm, router, toast]);
+
+  const handleViewTestDetails = async (test: Test) => {
+    setSelectedTestForView(test); // Set basic info immediately
+    setIsViewTestDialogOpen(true);
+    setIsFetchingTestDetails(true);
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({ title: "Auth Error", description: "Please login.", variant: "destructive" });
+      setIsFetchingTestDetails(false);
+      setIsViewTestDialogOpen(false);
+      return;
     }
-  }, [categoryId]);
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/tests/${test.id}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (!response.ok) throw new Error('Failed to fetch test details.');
+      const result = await response.json();
+      if (result.success && result.data) {
+        setSelectedTestForView(result.data); // Update with full details including parameters
+      } else {
+        throw new Error(result.message || 'Could not load full test details.');
+      }
+    } catch (error: any) {
+      toast({ title: "Error Loading Details", description: error.message, variant: "destructive" });
+    } finally {
+      setIsFetchingTestDetails(false);
+    }
+  };
+  
+  const handleDeleteTest = async (testId: number) => {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        toast({ title: "Auth Error", description: "Please login.", variant: "destructive" });
+        return;
+    }
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/tests/${testId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}`},
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+            toast({ title: "Test Deleted", description: result.message });
+            // Refetch tests
+            if (categoryDetails) { // Ensure categoryDetails is not null
+                const testsResponse = await fetch(`${BACKEND_API_URL}/test-categories/${categoryId}/tests?search=${searchTerm}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                });
+                if (testsResponse.ok) {
+                    const testsResult = await testsResponse.json();
+                    if (testsResult.success) setTests(testsResult.data);
+                }
+            }
+        } else {
+            toast({ title: "Error Deleting Test", description: result.message || "Failed to delete test.", variant: "destructive" });
+        }
+    } catch (error: any) {
+        toast({ title: "Network Error", description: error.message || "Could not connect to server.", variant: "destructive"});
+    }
+};
 
-  const filteredTests = categoryDetails?.tests.filter(test =>
-    test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    test.shortCode.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
 
-  if (isLoading) {
+  if (isLoadingCategory) {
     return (
       <div className="flex flex-col gap-6">
         <Card className="shadow-lg">
@@ -213,21 +248,21 @@ export default function CategoryTestsPage() {
                 </Button>
                 <div>
                   <CardTitle className="text-3xl font-bold flex items-center">
-                    <div className="h-8 w-8 bg-muted rounded-full animate-pulse mr-3" />
-                    <div className="h-8 w-40 bg-muted rounded animate-pulse" />
+                    <Loader2 className="mr-3 h-8 w-8 text-primary animate-spin" />
+                    <Skeleton className="h-8 w-48" />
                   </CardTitle>
-                  <CardDescription className="h-5 w-60 bg-muted rounded animate-pulse mt-1" />
+                  <Skeleton className="h-5 w-64 mt-1" />
                 </div>
               </div>
           </CardHeader>
         </Card>
         <Card className="shadow-md">
           <CardHeader>
-            <div className="h-10 w-full md:w-1/3 bg-muted rounded animate-pulse" />
+             <Skeleton className="h-10 w-full md:w-1/3" />
           </CardHeader>
           <CardContent className="p-0">
              <div className="p-4 space-y-2">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-12 w-full bg-muted rounded animate-pulse" />)}
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
              </div>
           </CardContent>
         </Card>
@@ -237,18 +272,21 @@ export default function CategoryTestsPage() {
 
   if (!categoryDetails) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-        <Container className="h-24 w-24 text-destructive" />
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-6">
+        <Container className="h-24 w-24 text-destructive mb-4" />
         <h1 className="text-2xl font-bold">Category Not Found</h1>
-        <p className="text-muted-foreground">The test category you are looking for does not exist or could not be loaded.</p>
+        <p className="text-muted-foreground max-w-md">
+          The test category (ID: {categoryId}) you are looking for either does not exist or could not be loaded. 
+          This might be due to an invalid ID or a network issue.
+        </p>
         <Button onClick={() => router.push('/tests')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Go Back to Categories
+          <ArrowLeft className="mr-2 h-4 w-4" /> Go Back to All Categories
         </Button>
       </div>
     );
   }
   
-  const CategoryIcon = categoryDetails.icon;
+  const CategoryIcon = getIconByName(categoryDetails.icon);
 
   return (
     <div className="flex flex-col gap-6">
@@ -264,7 +302,7 @@ export default function CategoryTestsPage() {
                   <CategoryIcon className="mr-3 h-8 w-8 text-primary" />
                   {categoryDetails.name} Tests
                 </CardTitle>
-                <CardDescription>{categoryDetails.description}</CardDescription>
+                <CardDescription>{categoryDetails.description || "Manage tests under this category."}</CardDescription>
               </div>
             </div>
              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
@@ -301,14 +339,25 @@ export default function CategoryTestsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTests.length > 0 ? (
-                filteredTests.map((test) => (
+              {isLoadingTests ? (
+                 [...Array(3)].map((_, i) => (
+                    <TableRow key={`test-skeleton-${i}`}>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-12" /></TableCell>
+                        <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+                        <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
+                    </TableRow>
+                 ))
+              ) : tests.length > 0 ? (
+                tests.map((test) => (
                   <TableRow key={test.id}>
                     <TableCell className="font-medium">{test.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline">{test.shortCode}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{test.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold">{parseFloat(test.price.toString()).toFixed(2)}</TableCell>
                     <TableCell className="hidden md:table-cell">{test.turnAroundTime}</TableCell>
                     <TableCell className="hidden lg:table-cell">{test.sampleType}</TableCell>
                     <TableCell className="text-right">
@@ -321,16 +370,16 @@ export default function CategoryTestsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewTestDetails(test)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/tests/${categoryId}/edit/${test.id}`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Test
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                          <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteTest(test.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Test
                           </DropdownMenuItem>
@@ -341,12 +390,14 @@ export default function CategoryTestsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    No tests found in this category{searchTerm ? " matching your search" : ""}.
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <div className="block"> {/* Ensure this is a block element for text-center to apply well */}
+                      No tests found in this category{searchTerm ? " matching your search" : ""}.
+                    </div>
                     {!searchTerm && (
                         <Link href={`/tests/${categoryId}/create-test`} passHref className="mt-2 inline-block">
                             <Button variant="link" className="text-primary">
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add the first test
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add the first test to {categoryDetails.name}
                             </Button>
                         </Link>
                     )}
@@ -356,14 +407,113 @@ export default function CategoryTestsPage() {
             </TableBody>
           </Table>
         </CardContent>
-        {categoryDetails.tests.length > 5 && ( // Basic pagination example
-             <CardFooter className="justify-center border-t pt-6">
-                <Button variant="outline" size="sm">Previous</Button>
-                <span className="mx-4 text-sm text-muted-foreground">Page 1 of 1</span> {/* Update with actual pagination logic */}
-                <Button variant="outline" size="sm">Next</Button>
-            </CardFooter>
-        )}
       </Card>
+       {isViewTestDialogOpen && selectedTestForView && (
+        <Dialog open={isViewTestDialogOpen} onOpenChange={setIsViewTestDialogOpen}>
+          <DialogContent className="sm:max-w-lg md:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center text-2xl font-semibold">
+                <TestTube className="mr-3 h-7 w-7 text-primary" /> Test Details
+              </DialogTitle>
+              <DialogDescription>
+                Viewing detailed information for "{selectedTestForView.name}".
+              </DialogDescription>
+            </DialogHeader>
+            <Separator className="my-4" />
+            {isFetchingTestDetails ? (
+              <div className="space-y-4 p-4">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="h-5 w-2/3" />
+                <Separator className="my-3"/>
+                <Skeleton className="h-6 w-1/3 mb-2" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : (
+              <ScrollArea className="max-h-[60vh] pr-3">
+                <div className="grid gap-3 py-4 text-sm">
+                  <div className="grid grid-cols-[150px_1fr] items-center gap-x-3 gap-y-2">
+                    <Label className="text-right text-muted-foreground">Test ID:</Label>
+                    <span className="font-medium">TEST-{selectedTestForView.id}</span>
+
+                    <Label className="text-right text-muted-foreground">Name:</Label>
+                    <span className="font-medium">{selectedTestForView.name}</span>
+                    
+                    <Label className="text-right text-muted-foreground">Short Code:</Label>
+                    <Badge variant="outline">{selectedTestForView.shortCode}</Badge>
+
+                    <Label className="text-right text-muted-foreground">Price:</Label>
+                    <span className="font-medium">₹{parseFloat(selectedTestForView.price.toString()).toFixed(2)}</span>
+
+                    <Label className="text-right text-muted-foreground">TAT:</Label>
+                    <span className="font-medium">{selectedTestForView.turnAroundTime}</span>
+
+                    <Label className="text-right text-muted-foreground">Sample Type:</Label>
+                    <span className="font-medium">{selectedTestForView.sampleType}</span>
+
+                    <Label className="text-right text-muted-foreground">Methodology:</Label>
+                    <span className="font-medium">{selectedTestForView.methodology || 'N/A'}</span>
+                    
+                    <Label className="text-right text-muted-foreground">Normal Range (Gen):</Label>
+                    <span className="font-medium">{selectedTestForView.normalRange || 'N/A'}</span>
+
+                    <Label className="text-right text-muted-foreground col-start-1">Description:</Label>
+                    <p className="col-span-1 text-foreground leading-relaxed">{selectedTestForView.description || 'N/A'}</p>
+                  </div>
+
+                  {selectedTestForView.parameters && selectedTestForView.parameters.length > 0 && (
+                    <>
+                      <Separator className="my-4" />
+                      <div>
+                        <h4 className="text-md font-semibold mb-3 flex items-center">
+                          <ListOrdered className="mr-2 h-5 w-5 text-muted-foreground" /> Parameters ({selectedTestForView.parameters.length})
+                        </h4>
+                        <div className="space-y-3 rounded-md border p-3 bg-muted/30">
+                          {selectedTestForView.parameters.map((param, index) => (
+                            <div key={`param-${param.name}-${index}`} className="p-2 rounded-md bg-background shadow-sm">
+                              <div className="font-medium text-foreground flex items-center">{param.name} <Badge variant="secondary" className="ml-2">{param.fieldType}</Badge></div>
+                              {param.fieldType === 'Formula' ? (
+                                <p className="text-xs"><strong className="text-muted-foreground">Formula:</strong> {param.formulaString || 'N/A'}</p>
+                              ) : (
+                                <>
+                                  <p className="text-xs"><strong className="text-muted-foreground">Units:</strong> {param.units || 'N/A'}</p>
+                                  <p className="text-xs"><strong className="text-muted-foreground">Range:</strong> {param.rangeText || `${param.rangeLow ?? 'N/A'} - ${param.rangeHigh ?? 'N/A'}`}</p>
+                                </>
+                              )}
+                              {param.fieldType === 'Option List' && param.options && (
+                                <p className="text-xs"><strong className="text-muted-foreground">Options:</strong> {(Array.isArray(param.options) ? param.options : []).join(', ') || 'N/A'}</p>
+                              )}
+                              <p className="text-xs"><strong className="text-muted-foreground">Method:</strong> {param.testMethod || 'N/A'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </ScrollArea>
+            )}
+            <Separator className="my-4" />
+            <DialogFooter className="sm:justify-between">
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+              <Button 
+                onClick={() => { 
+                  if (selectedTestForView?.id) {
+                    router.push(`/tests/${categoryId}/edit/${selectedTestForView.id}`); 
+                    setIsViewTestDialogOpen(false); 
+                  }
+                }} 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={!selectedTestForView?.id || isFetchingTestDetails}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Edit Test
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

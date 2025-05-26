@@ -32,8 +32,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, UserPlus, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Save, Stethoscope, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 const doctorFormSchema = z.object({
   title: z.enum(['Dr.', 'Prof.', 'Other'], {
@@ -46,16 +48,14 @@ const doctorFormSchema = z.object({
   }),
   specialty: z.string().min(1, 'Specialty is required.'),
   qualification: z.string().optional(),
-  experienceYears: z.coerce.number().int().min(0, 'Experience must be a positive number.').optional(),
+  experienceYears: z.coerce.number().int().min(0, 'Experience must be a positive number.').optional().nullable(),
   email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
   phone: z.string()
     .min(10, 'Phone number must be at least 10 digits.')
-    .regex(/^\+?[0-9\s-()]+$/, 'Invalid phone number format.')
-    .optional().or(z.literal('')),
+    .regex(/^\+?[0-9\s-()]+$/, 'Invalid phone number format.'),
   address: z.string().optional(),
-  bio: z.string().optional(),
-  consultationFee: z.coerce.number().min(0, "Consultation fee cannot be negative").optional(),
-  doctorID: z.string().optional(), // Auto-generated or manual
+  consultationFee: z.coerce.number().min(0, "Consultation fee cannot be negative").optional().nullable(),
+  doctorID: z.string().optional(), 
 });
 
 type DoctorFormValues = z.infer<typeof doctorFormSchema>;
@@ -63,6 +63,7 @@ type DoctorFormValues = z.infer<typeof doctorFormSchema>;
 export default function CreateDoctorPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema),
@@ -73,24 +74,65 @@ export default function CreateDoctorPage() {
       gender: undefined,
       specialty: '',
       qualification: '',
-      experienceYears: undefined,
+      experienceYears: null,
       email: '',
       phone: '',
       address: '',
-      bio: '',
-      consultationFee: undefined,
+      consultationFee: null,
       doctorID: '',
     },
   });
 
-  const onSubmit: SubmitHandler<DoctorFormValues> = (data) => {
-    console.log('Doctor data:', data);
-    toast({
-      title: 'Doctor Added',
-      description: `${data.title} ${data.firstName} ${data.lastName} has been successfully added.`,
-    });
-    // router.push('/doctors');
-    form.reset();
+  const onSubmit: SubmitHandler<DoctorFormValues> = async (data) => {
+    setIsSubmitting(true);
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You are not logged in. Please login to add a doctor.',
+        variant: 'destructive',
+      });
+      router.push('/');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/doctors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: 'Doctor Added',
+          description: `${result.data.firstName} ${result.data.lastName} (ID: ${result.data.doctorID}) has been successfully added.`,
+        });
+        form.reset();
+        // router.push('/doctors'); 
+      } else {
+        toast({
+          title: 'Failed to Add Doctor',
+          description: result.message || 'An error occurred.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Create doctor request error:', error);
+      toast({
+        title: 'Network Error',
+        description: 'Could not connect to the server. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -124,7 +166,7 @@ export default function CreateDoctorPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>Title *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -148,7 +190,7 @@ export default function CreateDoctorPage() {
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>First Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter first name" {...field} />
                     </FormControl>
@@ -161,7 +203,7 @@ export default function CreateDoctorPage() {
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel>Last Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter last name" {...field} />
                     </FormControl>
@@ -174,7 +216,7 @@ export default function CreateDoctorPage() {
                 name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
+                    <FormLabel>Gender *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -198,7 +240,7 @@ export default function CreateDoctorPage() {
                 name="doctorID"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Doctor ID (Optional)</FormLabel>
+                    <FormLabel>Doctor ID (Optional - Auto-generated if blank)</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., DOC1001" {...field} />
                     </FormControl>
@@ -219,7 +261,7 @@ export default function CreateDoctorPage() {
                 name="specialty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Specialty</FormLabel>
+                    <FormLabel>Specialty *</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., Cardiologist" {...field} />
                     </FormControl>
@@ -247,7 +289,13 @@ export default function CreateDoctorPage() {
                   <FormItem>
                     <FormLabel>Years of Experience (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 5" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} />
+                      <Input 
+                        type="number" 
+                        placeholder="e.g., 5" 
+                        {...field} 
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -258,22 +306,15 @@ export default function CreateDoctorPage() {
                 name="consultationFee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Consultation Fee (Optional)</FormLabel>
+                    <FormLabel>Consultation Fee (₹) (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 500" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="bio"
-                render={({ field }) => (
-                  <FormItem className="lg:col-span-3">
-                    <FormLabel>Bio / Short Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Briefly describe the doctor's expertise..." className="min-h-[100px]" {...field} />
+                      <Input 
+                        type="number" 
+                        placeholder="e.g., 500" 
+                        {...field} 
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -305,7 +346,7 @@ export default function CreateDoctorPage() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number (Optional)</FormLabel>
+                    <FormLabel>Phone Number *</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="+1 234 567 8900" {...field} />
                     </FormControl>
@@ -330,12 +371,21 @@ export default function CreateDoctorPage() {
           </Card>
 
           <CardFooter className="flex justify-end gap-4 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={() => router.push('/doctors')}>
+            <Button type="button" variant="outline" onClick={() => router.push('/doctors')} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting}>
-              <Save className="mr-2 h-5 w-5" />
-              {form.formState.isSubmitting ? 'Saving...' : 'Save Doctor'}
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-5 w-5" />
+                  Save Doctor
+                </>
+              )}
             </Button>
           </CardFooter>
         </form>

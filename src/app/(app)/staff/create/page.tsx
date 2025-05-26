@@ -31,10 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, UserPlus2 } from 'lucide-react';
+import { ArrowLeft, Save, UserPlus2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const staffRoles = ["Admin", "Technician", "Receptionist", "Doctor", "Accountant", "Other"] as const;
+type StaffRoleTuple = typeof staffRoles; // Used for Zod enum
 
 const staffFormSchema = z.object({
   title: z.enum(['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Other'], {
@@ -47,7 +48,7 @@ const staffFormSchema = z.object({
     .min(10, 'Phone number must be at least 10 digits.')
     .regex(/^\+?[0-9\s-()]+$/, 'Invalid phone number format.')
     .optional().or(z.literal('')),
-  role: z.enum(staffRoles, {
+  role: z.enum(staffRoles, { // Use the tuple for Zod enum
     required_error: 'Role is required.',
   }),
   password: z.string().min(8, 'Password must be at least 8 characters.'),
@@ -59,9 +60,12 @@ const staffFormSchema = z.object({
 
 type StaffFormValues = z.infer<typeof staffFormSchema>;
 
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
 export default function CreateStaffPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema),
@@ -77,14 +81,59 @@ export default function CreateStaffPage() {
     },
   });
 
-  const onSubmit: SubmitHandler<StaffFormValues> = (data) => {
-    console.log('Staff data:', data);
-    toast({
-      title: 'Staff Member Created',
-      description: `${data.title} ${data.firstName} ${data.lastName} has been added as ${data.role}.`,
-    });
-    form.reset();
-    // router.push('/staff'); 
+  const onSubmit: SubmitHandler<StaffFormValues> = async (data) => {
+    setIsSubmitting(true);
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You are not logged in. Please login to add staff.',
+        variant: 'destructive',
+      });
+      router.push('/');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { confirmPassword, ...payload } = data; // Exclude confirmPassword from payload
+
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/staff`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: 'Staff Member Created',
+          description: `${result.data.firstName} ${result.data.lastName} has been added as ${result.data.role}.`,
+        });
+        form.reset();
+        router.push('/staff'); 
+      } else {
+        toast({
+          title: 'Failed to Create Staff Member',
+          description: result.message || 'An error occurred.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Create staff request error:', error);
+      toast({
+        title: 'Network Error',
+        description: 'Could not connect to the server. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -92,7 +141,7 @@ export default function CreateStaffPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => router.push('/staff')} aria-label="Go back to staff list">
+            <Button variant="outline" size="icon" onClick={() => router.push('/staff')} aria-label="Go back to staff list" disabled={isSubmitting}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -118,7 +167,7 @@ export default function CreateStaffPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>Title *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -142,7 +191,7 @@ export default function CreateStaffPage() {
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>First Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter first name" {...field} />
                     </FormControl>
@@ -155,7 +204,7 @@ export default function CreateStaffPage() {
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel>Last Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter last name" {...field} />
                     </FormControl>
@@ -176,7 +225,7 @@ export default function CreateStaffPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel>Email Address *</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="staff.member@example.com" {...field} />
                     </FormControl>
@@ -202,7 +251,7 @@ export default function CreateStaffPage() {
                 name="role"
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
-                    <FormLabel>Assigned Role</FormLabel>
+                    <FormLabel>Assigned Role *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -234,7 +283,7 @@ export default function CreateStaffPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Password *</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="Create a strong password" {...field} />
                     </FormControl>
@@ -247,7 +296,7 @@ export default function CreateStaffPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>Confirm Password *</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="Re-enter password" {...field} />
                     </FormControl>
@@ -259,12 +308,21 @@ export default function CreateStaffPage() {
           </Card>
 
           <CardFooter className="flex justify-end gap-4 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={() => router.push('/staff')}>
+            <Button type="button" variant="outline" onClick={() => router.push('/staff')} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={form.formState.isSubmitting}>
-              <Save className="mr-2 h-5 w-5" />
-              {form.formState.isSubmitting ? 'Saving...' : 'Save Staff Member'}
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-5 w-5" />
+                  Save Staff Member
+                </>
+              )}
             </Button>
           </CardFooter>
         </form>
