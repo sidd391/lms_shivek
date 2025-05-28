@@ -199,7 +199,7 @@ const evaluateFormula = (formulaString: string | null | undefined, dependentValu
 export default function EditReportPage() {
   const router = useRouter();
   const params = useParams();
-  const reportId = params.reportId as string;
+  const reportId = params?.reportId as string;
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = React.useState(true);

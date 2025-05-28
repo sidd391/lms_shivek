@@ -82,7 +82,13 @@ export default function CreateBillPage() {
   const handlePatientSelected = React.useCallback((patient: Patient | null) => {
     setSelectedPatient(patient);
   }, []);
-
+const handleTestPriceChange = (testId: string, newPrice: number) => {
+  setSelectedTests(tests =>
+    tests.map(test =>
+      test.id === testId ? { ...test, price: newPrice } : test
+    )
+  );
+};
   const handleDoctorSelected = React.useCallback((doctor: Doctor | null) => {
     setSelectedDoctor(doctor);
   }, []);
@@ -203,6 +209,8 @@ export default function CreateBillPage() {
                 onDiscountChange={handleDiscountChange}
                 notes={notes}
                 onNotesChange={handleNotesChange}
+                onTestPriceChange={handleTestPriceChange}
+
             />
         );
       default:

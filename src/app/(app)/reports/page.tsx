@@ -519,13 +519,13 @@ export default function ReportsPage() {
                             <DropdownMenuItem onClick={() => router.push(`/reports/print/${report.id}`)}>
                               <Printer className="mr-2 h-4 w-4" /> Print Report
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                            {/* <DropdownMenuSeparator />
                              <DropdownMenuItem onClick={() => openSendDialog(report, 'whatsapp')}>
                               <MessageSquare className="mr-2 h-4 w-4 text-green-600" /> Send via WhatsApp
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openSendDialog(report, 'email')}>
                               <Mail className="mr-2 h-4 w-4 text-blue-600" /> Send via Email
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                             <DropdownMenuSeparator />
                             <AlertDialogTrigger asChild>
                                 <DropdownMenuItem

@@ -17,6 +17,7 @@ import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from '@/lib/utils';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -65,7 +66,10 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
+    <header className={cn(
+      "sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 shadow-sm",
+      "print:hidden" // This class will hide the header when printing
+    )}>
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
